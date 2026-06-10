@@ -1,15 +1,62 @@
 platform :ios do
   APP_IDENTIFIER = "com.daedatechnologies.vocabaloud"
   DEVELOPMENT_TEAM = "9525L899V5"
+  API_KEY_PATH = "/tmp/app_store_connect_api_key.p8"
+
+  def normalize_api_key_content(raw)
+    require "base64"
+
+    content = raw.to_s.strip
+    return content if content.empty?
+
+    if !content.include?("BEGIN PRIVATE KEY")
+      begin
+        decoded = Base64.decode64(content)
+        content = decoded if decoded.include?("BEGIN PRIVATE KEY")
+      rescue StandardError
+        # Keep original content and let validation fail with a clear message.
+      end
+    end
+
+    if content.include?('\n') && content.count("\n") < 3
+      content = content.gsub('\n', "\n")
+    end
+
+    content = content.gsub("\r\n", "\n").gsub("\r", "\n").strip
+    content += "\n" unless content.end_with?("\n")
+    content
+  end
+
+  def write_api_key_file(content, path)
+    File.write(path, content)
+    File.chmod(0o600, path)
+  end
 
   def api_key_from_env
-    temp_key_file = "/tmp/app_store_connect_api_key.p8"
-    File.write(temp_key_file, ENV["APP_STORE_CONNECT_API_KEY"])
+    key_id = ENV["APP_STORE_KEY_ID"].to_s.strip
+    issuer_id = ENV["APP_STORE_ISSUER_ID"].to_s.strip
+    UI.user_error!("APP_STORE_KEY_ID is missing") if key_id.empty?
+    UI.user_error!("APP_STORE_ISSUER_ID is missing") if issuer_id.empty?
+
+    key_path = ENV["APP_STORE_CONNECT_API_KEY_PATH"].to_s.strip
+    key_path = API_KEY_PATH if key_path.empty?
+
+    unless File.exist?(key_path) && !File.read(key_path).strip.empty?
+      raw_key = ENV["APP_STORE_CONNECT_API_KEY"]
+      UI.user_error!("APP_STORE_CONNECT_API_KEY is missing") if raw_key.to_s.strip.empty?
+
+      key_content = normalize_api_key_content(raw_key)
+      unless key_content.include?("BEGIN PRIVATE KEY")
+        UI.user_error!("APP_STORE_CONNECT_API_KEY is not a valid PEM private key")
+      end
+
+      write_api_key_file(key_content, key_path)
+    end
 
     app_store_connect_api_key(
-      key_id: ENV["APP_STORE_KEY_ID"],
-      issuer_id: ENV["APP_STORE_ISSUER_ID"],
-      key_filepath: temp_key_file
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_path
     )
   end
 
@@ -40,7 +87,6 @@ platform :ios do
     ENV["MATCH_READONLY"] = readonly ? "true" : "false"
     UI.message("match readonly mode: #{readonly ? 'true' : 'false'}")
 
-    temp_key_file = "/tmp/app_store_connect_api_key.p8"
     api_key = api_key_from_env
 
     profile_name = "match AppStore #{APP_IDENTIFIER}"
@@ -85,14 +131,13 @@ platform :ios do
       skip_waiting_for_build_processing: true
     )
   ensure
-    File.delete(temp_key_file) if defined?(temp_key_file) && File.exist?(temp_key_file)
+    File.delete(API_KEY_PATH) if File.exist?(API_KEY_PATH)
   end
 
   desc "Sync match certs/profiles (non-readonly)"
   lane :sync_match do
     setup_ci(force: true)
 
-    temp_key_file = "/tmp/app_store_connect_api_key.p8"
     api_key = api_key_from_env
 
     match(
@@ -102,6 +147,6 @@ platform :ios do
       api_key: api_key
     )
   ensure
-    File.delete(temp_key_file) if defined?(temp_key_file) && File.exist?(temp_key_file)
+    File.delete(API_KEY_PATH) if File.exist?(API_KEY_PATH)
   end
 end

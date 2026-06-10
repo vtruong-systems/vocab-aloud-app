@@ -83,6 +83,45 @@ jobs:
         working-directory: ios
         run: bundle install
 
+      - name: Prepare App Store Connect API key
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import os
+          import sys
+
+          raw = os.environ.get("APP_STORE_CONNECT_API_KEY", "")
+          if not raw.strip():
+              print("APP_STORE_CONNECT_API_KEY is empty", file=sys.stderr)
+              sys.exit(1)
+
+          content = raw
+          if "BEGIN PRIVATE KEY" not in content:
+              try:
+                  decoded = base64.b64decode(content, validate=True).decode("utf-8")
+                  if "BEGIN PRIVATE KEY" in decoded:
+                      content = decoded
+              except Exception:
+                  pass
+
+          if "\\n" in content and content.count("\n") < 3:
+              content = content.replace("\\n", "\n")
+
+          content = content.replace("\r\n", "\n").replace("\r", "\n").strip()
+          if "BEGIN PRIVATE KEY" not in content:
+              print("APP_STORE_CONNECT_API_KEY is not a valid PEM private key", file=sys.stderr)
+              sys.exit(1)
+
+          content += "\n"
+          path = "/tmp/app_store_connect_api_key.p8"
+          with open(path, "w", encoding="utf-8", newline="\n") as handle:
+              handle.write(content)
+          os.chmod(path, 0o600)
+          PY
+
       - name: Run Fastlane
         id: fastlane_run
         working-directory: ios
@@ -91,6 +130,7 @@ jobs:
           APP_STORE_KEY_ID: ${{ vars.APP_STORE_KEY_ID }}
           APP_STORE_ISSUER_ID: ${{ vars.APP_STORE_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          APP_STORE_CONNECT_API_KEY_PATH: /tmp/app_store_connect_api_key.p8
           MATCH_PASSWORD: ${{ secrets.FASTLANE_MATCH_PASSWORD }}
           MATCH_KEYCHAIN_PASSWORD: ${{ secrets.FASTLANE_MATCH_PASSWORD }}
           MATCH_READONLY_INPUT: ${{ github.event_name == 'workflow_dispatch' && 'false' || 'true' }}
