@@ -94,6 +94,18 @@ class _WordSetCardState extends State<WordSetCard> {
                       ),
                     ],
                   ),
+                  if (widget.set.teacher != null || widget.set.school != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if (widget.set.teacher != null) widget.set.teacher,
+                        if (widget.set.school != null) widget.set.school,
+                      ].join(' · '),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.black87,
+                          ),
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     '${widget.set.theme} · ${formatSetLevelLabel(widget.set)}',

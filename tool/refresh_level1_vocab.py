@@ -4,7 +4,7 @@
 import csv
 from collections import defaultdict
 
-CSV_PATH = 'vocab.csv'
+CSV_PATH = 'data/vocabulary/default/vocab.csv'
 
 DEMOTE_TO_K = {
     'Red', 'Blue', 'Green', 'Yellow', 'Orange',

@@ -1,6 +1,11 @@
 import 'grade_level.dart';
 import 'vocabulary_word.dart';
 
+enum VocabularySetSource {
+  defaultSet,
+  community,
+}
+
 class VocabularySet {
   const VocabularySet({
     required this.id,
@@ -11,6 +16,9 @@ class VocabularySet {
     required this.minGradeLevel,
     required this.maxGradeLevel,
     required this.words,
+    this.teacher,
+    this.school,
+    this.source = VocabularySetSource.defaultSet,
   });
 
   final String id;
@@ -21,6 +29,11 @@ class VocabularySet {
   final GradeLevel minGradeLevel;
   final GradeLevel maxGradeLevel;
   final List<VocabularyWord> words;
+  final String? teacher;
+  final String? school;
+  final VocabularySetSource source;
 
   int get wordCount => words.length;
+
+  bool get isCommunity => source == VocabularySetSource.community;
 }

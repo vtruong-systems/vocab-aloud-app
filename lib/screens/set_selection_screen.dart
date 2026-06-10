@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../data/vocabulary_sets.dart';
 import '../models/grade_level.dart';
+import '../models/profile_progress.dart';
+import '../models/vocabulary_set.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 import '../utils/grade_filter.dart';
 import '../utils/progress_helpers.dart';
+import '../utils/set_search.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/home_icon_button.dart';
@@ -23,6 +26,14 @@ class SetSelectionScreen extends StatefulWidget {
 class _SetSelectionScreenState extends State<SetSelectionScreen> {
   GradeLevel? _levelFilter;
   SetLevelSort _sort = SetLevelSort.setNumber;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openSet(BuildContext context, String setId) async {
     final controller = context.read<AppController>();
@@ -89,17 +100,123 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
     );
   }
 
+  List<VocabularySet> _visibleSets() {
+    final filtered = filterAndSortSets(
+      vocabularySets,
+      selectedLevel: _levelFilter,
+      sort: _sort,
+    );
+    return filterSetsByQuery(filtered, _searchQuery);
+  }
+
+  Widget _buildSetCard(
+    BuildContext context,
+    AppController controller,
+    ProfileProgress? profileProgress,
+    VocabularySet set,
+  ) {
+    final setProgress =
+        profileProgress?.sets[set.id]?.wordProgress ?? {};
+    final stats = computeSetStats(
+      set,
+      setProgress,
+      requireTyped: controller.settings.requireTypeItForCompletion,
+    );
+    return WordSetCard(
+      set: set,
+      stats: stats,
+      onStart: () => _openSet(context, set.id),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 2),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: Colors.black54,
+            ),
+      ),
+    );
+  }
+
+  Widget _buildSetList(
+    BuildContext context,
+    AppController controller,
+    ProfileProgress? profileProgress,
+    List<VocabularySet> visibleSets,
+  ) {
+    if (visibleSets.isEmpty) {
+      final hasSearch = _searchQuery.trim().isNotEmpty;
+      final message = hasSearch
+          ? 'No word sets match your search.'
+          : _levelFilter == null
+              ? 'No word sets available.'
+              : 'No word sets include ${_levelFilter!.label}.';
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ),
+      );
+    }
+
+    final showSections = _searchQuery.trim().isEmpty &&
+        hasCommunitySets(visibleSets);
+
+    if (!showSections) {
+      return ListView.separated(
+        itemCount: visibleSets.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          return _buildSetCard(
+            context,
+            controller,
+            profileProgress,
+            visibleSets[index],
+          );
+        },
+      );
+    }
+
+    final defaults = defaultSets(visibleSets);
+    final community = communitySets(visibleSets);
+
+    return ListView(
+      children: [
+        if (defaults.isNotEmpty) ...[
+          _buildSectionHeader(context, 'Default Sets'),
+          const SizedBox(height: 8),
+          for (var i = 0; i < defaults.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _buildSetCard(context, controller, profileProgress, defaults[i]),
+          ],
+          const SizedBox(height: 16),
+        ],
+        if (community.isNotEmpty) ...[
+          _buildSectionHeader(context, 'Teacher Sets'),
+          const SizedBox(height: 8),
+          for (var i = 0; i < community.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _buildSetCard(context, controller, profileProgress, community[i]),
+          ],
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
     final profileId = controller.state.activeProfileId;
     final profileProgress =
         profileId == null ? null : controller.state.profileProgress[profileId];
-    final visibleSets = filterAndSortSets(
-      vocabularySets,
-      selectedLevel: _levelFilter,
-      sort: _sort,
-    );
+    final visibleSets = _visibleSets();
 
     return AppScaffold(
       leading: const HomeIconButton(),
@@ -119,6 +236,28 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
               elevation: 2,
             ),
             child: const Text('Continue'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search sets, teachers, schools...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              isDense: true,
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
           ),
           const SizedBox(height: 12),
           Row(
@@ -162,39 +301,12 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: visibleSets.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        _levelFilter == null
-                            ? 'No word sets available.'
-                            : 'No word sets include ${ _levelFilter!.label}.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    itemCount: visibleSets.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final set = visibleSets[index];
-                      final setProgress =
-                          profileProgress?.sets[set.id]?.wordProgress ?? {};
-                      final stats = computeSetStats(
-                        set,
-                        setProgress,
-                        requireTyped:
-                            controller.settings.requireTypeItForCompletion,
-                      );
-                      return WordSetCard(
-                        set: set,
-                        stats: stats,
-                        onStart: () => _openSet(context, set.id),
-                      );
-                    },
-                  ),
+            child: _buildSetList(
+              context,
+              controller,
+              profileProgress,
+              visibleSets,
+            ),
           ),
         ],
       ),

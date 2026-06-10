@@ -1,0 +1,35 @@
+name: Validate Vocabulary
+
+on:
+  pull_request:
+    paths:
+      - 'data/vocabulary/**'
+      - 'tool/generate_vocabulary.dart'
+      - 'tool/vocabulary_generator.dart'
+      - 'lib/data/vocabulary_sets.dart'
+  push:
+    branches:
+      - main
+    paths:
+      - 'data/vocabulary/**'
+      - 'tool/generate_vocabulary.dart'
+      - 'tool/vocabulary_generator.dart'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Generate vocabulary catalog
+        run: dart run tool/generate_vocabulary.dart
+
+      - name: Verify generated catalog is up to date
+        run: git diff --exit-code lib/data/vocabulary_sets.dart
