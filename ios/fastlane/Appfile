@@ -1,0 +1,5 @@
+app_identifier("com.daedatechnologies.vocabaloud")
+
+# App Store Connect Team and Developer Portal Team IDs
+itc_team_id("127297663")
+team_id("9525L899V5")

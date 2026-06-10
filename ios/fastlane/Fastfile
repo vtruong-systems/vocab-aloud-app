@@ -1,0 +1,107 @@
+platform :ios do
+  APP_IDENTIFIER = "com.daedatechnologies.vocabaloud"
+  DEVELOPMENT_TEAM = "9525L899V5"
+
+  def api_key_from_env
+    temp_key_file = "/tmp/app_store_connect_api_key.p8"
+    File.write(temp_key_file, ENV["APP_STORE_CONNECT_API_KEY"])
+
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_KEY_ID"],
+      issuer_id: ENV["APP_STORE_ISSUER_ID"],
+      key_filepath: temp_key_file
+    )
+  end
+
+  def match_readonly?
+    raw = (ENV["MATCH_READONLY_INPUT"] || ENV["MATCH_READONLY"] || "true").to_s.strip
+    !(raw.downcase == "false")
+  end
+
+  def marketing_version_from_pubspec
+    pubspec_path = File.expand_path("../../pubspec.yaml", __dir__)
+    if File.exist?(pubspec_path)
+      line = File.read(pubspec_path).lines.find { |l| l.strip.start_with?("version:") }
+      version = line&.split(":", 2)&.last&.to_s&.strip&.split("+", 2)&.first&.to_s&.strip
+      return version unless version.to_s.empty?
+    end
+
+    env_version = ENV["IOS_MARKETING_VERSION"].to_s.strip
+    return env_version unless env_version.empty?
+
+    "1.0.0"
+  end
+
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    readonly = match_readonly?
+
+    setup_ci(force: true)
+    ENV["MATCH_READONLY"] = readonly ? "true" : "false"
+    UI.message("match readonly mode: #{readonly ? 'true' : 'false'}")
+
+    temp_key_file = "/tmp/app_store_connect_api_key.p8"
+    api_key = api_key_from_env
+
+    profile_name = "match AppStore #{APP_IDENTIFIER}"
+
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      profile_name: profile_name,
+      readonly: readonly,
+      api_key: api_key
+    )
+
+    if (mapping = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING])
+      profile_name = mapping[APP_IDENTIFIER] || profile_name
+    end
+
+    marketing_version = marketing_version_from_pubspec
+    UI.message("iOS marketing version (CFBundleShortVersionString): #{marketing_version}")
+
+    increment_version_number(
+      xcodeproj: "Runner.xcodeproj",
+      version_number: marketing_version
+    )
+
+    build_number = ENV["GITHUB_RUN_NUMBER"] || (latest_testflight_build_number(api_key: api_key) + 1)
+    increment_build_number(xcodeproj: "Runner.xcodeproj", build_number: build_number)
+
+    build_app(
+      scheme: "Runner",
+      workspace: "Runner.xcworkspace",
+      xcargs: %Q(DEVELOPMENT_TEAM=#{DEVELOPMENT_TEAM} FLUTTER_BUILD_NAME=#{marketing_version} FLUTTER_BUILD_NUMBER=#{build_number} APPSTORE_PROFILE_NAME="#{profile_name}"),
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          APP_IDENTIFIER => profile_name
+        }
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  ensure
+    File.delete(temp_key_file) if defined?(temp_key_file) && File.exist?(temp_key_file)
+  end
+
+  desc "Sync match certs/profiles (non-readonly)"
+  lane :sync_match do
+    setup_ci(force: true)
+
+    temp_key_file = "/tmp/app_store_connect_api_key.p8"
+    api_key = api_key_from_env
+
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      readonly: false,
+      api_key: api_key
+    )
+  ensure
+    File.delete(temp_key_file) if defined?(temp_key_file) && File.exist?(temp_key_file)
+  end
+end

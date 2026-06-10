@@ -79,9 +79,9 @@ jobs:
       - name: Build iOS (no codesign)
         run: flutter build ios --release --no-codesign
 
-      - name: Update Fastlane
+      - name: Install Fastlane dependencies
         working-directory: ios
-        run: bundle update fastlane
+        run: bundle install
 
       - name: Run Fastlane
         id: fastlane_run
@@ -101,7 +101,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          fastlane ios beta --verbose 2>&1 | tee ../fastlane.log
+          bundle exec fastlane ios beta --verbose 2>&1 | tee ../fastlane.log
           exit_code="${PIPESTATUS[0]}"
           set -e
           echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
@@ -114,7 +114,8 @@ jobs:
           set -euo pipefail
           exit_code="${{ steps.fastlane_run.outputs.exit_code }}"
           if [ -z "$exit_code" ]; then
-            exit_code="0"
+            echo "::error::Fastlane did not run. Check earlier workflow steps."
+            exit 1
           fi
 
           if [ "$exit_code" = "0" ]; then

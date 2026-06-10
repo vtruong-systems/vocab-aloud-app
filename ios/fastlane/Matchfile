@@ -1,0 +1,7 @@
+git_url("git@github.com:Daeda-Technologies/fastlane.git")
+
+storage_mode("git")
+
+type("appstore")
+
+app_identifier(["com.daedatechnologies.vocabaloud"])

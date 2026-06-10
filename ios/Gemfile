@@ -1,0 +1,9 @@
+source "https://rubygems.org"
+
+# Fastlane (keep reasonably up to date; supports modern Xcode + Ruby)
+gem "fastlane", ">= 2.231.0"
+
+# Ruby 3.4+ moved some stdlib libs out of default gems.
+gem "abbrev"
+gem "logger"
+gem "mutex_m"
