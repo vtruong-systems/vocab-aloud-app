@@ -223,3 +223,12 @@ jobs:
           path: ${{ steps.collect_ipa.outputs.ipa_path }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload dSYM artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-dsym-${{ github.run_number }}
+          path: ios/*.dSYM.zip
+          if-no-files-found: ignore
+          retention-days: 14
