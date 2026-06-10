@@ -1,0 +1,191 @@
+name: Release Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      changesNotSentForReview:
+        description: 'If true, commits the edit without sending for review (use when another release is already in review)'
+        required: false
+        default: true
+        type: boolean
+  push:
+    branches:
+      - main
+
+env:
+  PACKAGE_NAME: com.daedatechnologies.vocabaloud
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+  AAB_NAME: release-${{ github.run_number }}.aab
+  AAB_PATH: build/app/outputs/bundle/release/release-${{ github.run_number }}.aab
+  KEYSTORE_PATH: android/static-app-keystore.jks
+  KEY_PROPS_PATH: android/key.properties
+  SERVICE_ACCOUNT_PATH: android/store_credentials.json
+
+jobs:
+  build_android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Skip CI if [skip ci] is in commit message
+        if: contains(github.event.head_commit.message, '[skip ci]') || contains(github.event.head_commit.message, '[ci skip]') || contains(github.event.head_commit.message, '[no ci]') || contains(github.event.head_commit.message, '[skip actions]') || contains(github.event.head_commit.message, '[actions skip]') || contains(github.event.head_commit.message, '[skip android]')
+        run: |
+          echo "Skipping CI as '[skip ci]' was found in the commit message."
+          exit 0
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Free disk space
+        run: |
+          df -h
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/lib/node_modules
+          if [ -d /usr/local/lib/android/sdk/ndk ]; then sudo rm -rf /usr/local/lib/android/sdk/ndk/*; fi
+          docker image prune -af || true
+          df -h
+
+      - name: Cache Flutter pub
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+          key: flutter-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            flutter-${{ runner.os }}-
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          cache: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Decode signing and Play Store credentials
+        run: |
+          echo "${{ secrets.KEY_STORE_BASE64 }}" | base64 --decode > ${{ env.KEYSTORE_PATH }} &
+          echo "${{ secrets.KEY_PROPERTIES_BASE64 }}" | base64 --decode > ${{ env.KEY_PROPS_PATH }} &
+          echo "${{ secrets.STATIC_SERVICE_ACCOUNT_BASE64 }}" | base64 --decode > ${{ env.SERVICE_ACCOUNT_PATH }} &
+          wait
+
+      - name: Disable Gradle File Watching
+        run: mkdir -p ~/.gradle; echo "org.gradle.unsafe.watch-fs=false" >> ~/.gradle/gradle.properties
+
+      - name: Configure Gradle Network Timeouts
+        run: |
+          mkdir -p ~/.gradle
+          echo "systemProp.org.gradle.internal.http.connectionTimeout=180000" >> ~/.gradle/gradle.properties
+          echo "systemProp.org.gradle.internal.http.socketTimeout=180000" >> ~/.gradle/gradle.properties
+
+      - name: Check if pubspec.yaml changed
+        id: pubspec-check
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q 'pubspec.yaml'; then
+            echo "run_clean=true" >> $GITHUB_ENV
+          else
+            echo "run_clean=false" >> $GITHUB_ENV
+          fi
+
+      - name: Clean Flutter Project (if needed)
+        if: env.run_clean == 'true'
+        run: flutter clean
+
+      - name: Precache Android only
+        run: flutter precache --android
+
+      - name: Install dependencies
+        run: |
+          chmod +x scripts/prepare_assets.sh
+          ./scripts/prepare_assets.sh
+          flutter pub get
+
+      - name: Update pubspec.yaml with GitHub run number
+        run: |
+          current=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          base_version=${current%%+*}
+          major=$(echo "$base_version" | cut -d. -f1)
+          minor=$(echo "$base_version" | cut -d. -f2)
+          run=${{ github.run_number }}
+          new_version="${major}.${minor}.${run}+${run}"
+          sed -i "s/^version: .*/version: ${new_version}/" pubspec.yaml
+          echo "new_version=${new_version}" >> $GITHUB_ENV
+
+      - name: Compute Play release name
+        run: |
+          base=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          major=$(echo "$base" | cut -d. -f1)
+          minor=$(echo "$base" | cut -d. -f2)
+          run_number=${{ github.run_number }}
+          prefix="${{ vars.RELEASE_PREFIX || 'release_' }}"
+          echo "RELEASE_NAME=${prefix}${major}.${minor}.${run_number}" >> $GITHUB_ENV
+          echo "Play release name: ${prefix}${major}.${minor}.${run_number}"
+
+      - name: Build AAB
+        id: build_aab
+        env:
+          ORG_GRADLE_PROJECT_org.gradle.workers.max: "2"
+          ORG_GRADLE_PROJECT_org.gradle.parallel: "false"
+          ORG_GRADLE_PROJECT_org.gradle.caching: "false"
+          ORG_GRADLE_PROJECT_org.gradle.jvmargs: "-Xmx2g -Dfile.encoding=UTF-8"
+        run: flutter build appbundle --release
+
+      - name: Retry Build with Cleanup
+        if: failure()
+        env:
+          ORG_GRADLE_PROJECT_org.gradle.workers.max: "2"
+          ORG_GRADLE_PROJECT_org.gradle.parallel: "false"
+          ORG_GRADLE_PROJECT_org.gradle.caching: "false"
+          ORG_GRADLE_PROJECT_org.gradle.jvmargs: "-Xmx2g -Dfile.encoding=UTF-8"
+        run: |
+          flutter clean
+          flutter pub get
+          flutter build appbundle --release
+
+      - name: Rename AAB file
+        run: mv build/app/outputs/bundle/release/app-release.aab ${{ env.AAB_PATH }}
+
+      - name: Upload AAB as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vocab-aloud-release-${{ github.run_number }}
+          path: ${{ env.AAB_PATH }}
+          retention-days: 30
+
+      - name: Create build summary
+        run: |
+          echo "## Vocab Aloud AAB Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**AAB File:** \`${{ env.AAB_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Package Name:** \`${{ env.PACKAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Download AAB" >> $GITHUB_STEP_SUMMARY
+          echo "The AAB file has been uploaded as a build artifact. You can download it from the Artifacts section at the bottom of this workflow run." >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy to Play Store
+        uses: r0adkll/upload-google-play@v1
+        continue-on-error: true
+        with:
+          serviceAccountJson: ${{ env.SERVICE_ACCOUNT_PATH }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: ${{ env.AAB_PATH }}
+          track: internal
+          status: draft
+          releaseName: ${{ env.RELEASE_NAME }}

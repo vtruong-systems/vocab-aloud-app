@@ -1,0 +1,184 @@
+name: Fastlane CI/CD
+run-name: prod - ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  fastlane:
+    runs-on: macos-26
+
+    steps:
+      - name: Skip CI if [skip ci] is in commit message
+        if: contains(github.event.head_commit.message, '[skip ci]') || contains(github.event.head_commit.message, '[ci skip]') || contains(github.event.head_commit.message, '[no ci]') || contains(github.event.head_commit.message, '[skip actions]') || contains(github.event.head_commit.message, '[actions skip]') || contains(github.event.head_commit.message, '[skip ios]')
+        run: |
+          echo "Skipping CI as '[skip ci]' was found in the commit message."
+          exit 0
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Add SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.FASTLANE_DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Setup Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.4'
+
+      - name: Ensure Xcode 26+ is selected
+        run: |
+          version=$(xcodebuild -version | head -1 | awk '{print $2}')
+          major="${version%%.*}"
+
+          if [ "${major:-0}" -lt 26 ]; then
+            echo "Xcode 26 or later is required for App Store uploads, but $version is active."
+            exit 1
+          fi
+
+          echo "Xcode $version is active."
+          xcodebuild -showsdks 2>/dev/null | grep -E 'iphoneos|iOS' || true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Install Bundler
+        run: gem install bundler
+
+      - name: Install CocoaPods
+        run: gem install cocoapods
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter Dependencies
+        run: |
+          chmod +x scripts/prepare_assets.sh
+          ./scripts/prepare_assets.sh
+          flutter config --no-enable-swift-package-manager
+          flutter pub get
+
+      - name: Install CocoaPods Dependencies
+        run: pod install
+        working-directory: ios
+
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Update Fastlane
+        working-directory: ios
+        run: bundle update fastlane
+
+      - name: Run Fastlane
+        id: fastlane_run
+        working-directory: ios
+        continue-on-error: true
+        env:
+          APP_STORE_KEY_ID: ${{ vars.APP_STORE_KEY_ID }}
+          APP_STORE_ISSUER_ID: ${{ vars.APP_STORE_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          MATCH_PASSWORD: ${{ secrets.FASTLANE_MATCH_PASSWORD }}
+          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.FASTLANE_MATCH_PASSWORD }}
+          MATCH_READONLY_INPUT: ${{ github.event_name == 'workflow_dispatch' && 'false' || 'true' }}
+          FASTLANE_SKIP_UPDATE_CHECK: true
+          FASTLANE_HIDE_ANSI: false
+          FASTLANE_DEBUG: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          fastlane ios beta --verbose 2>&1 | tee ../fastlane.log
+          exit_code="${PIPESTATUS[0]}"
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Decide outcome if TestFlight upload was throttled (warn-only)
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          exit_code="${{ steps.fastlane_run.outputs.exit_code }}"
+          if [ -z "$exit_code" ]; then
+            exit_code="0"
+          fi
+
+          if [ "$exit_code" = "0" ]; then
+            echo "Fastlane succeeded"
+            exit 0
+          fi
+
+          if [ -f "fastlane.log" ] && grep -qi "Upload limit reached" "fastlane.log"; then
+            echo "::warning::TestFlight upload throttled by Apple (Upload limit reached)."
+            exit 0
+          fi
+
+          echo "::error::Fastlane failed with exit code $exit_code"
+          if [ -f "fastlane.log" ]; then
+            echo "Last 100 lines of fastlane.log:"
+            echo "---"
+            tail -n 100 "fastlane.log" || true
+            echo "---"
+          fi
+
+          echo "Fastlane failed for a reason other than Apple upload throttle." >&2
+          exit 1
+
+      - name: Collect IPA artifact
+        id: collect_ipa
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          search_roots=("ios" "build")
+          newest_ipa=""
+          newest_mtime=0
+
+          for root in "${search_roots[@]}"; do
+            if [ -d "$root" ]; then
+              while IFS= read -r -d '' f; do
+                mtime="$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null || echo 0)"
+                if [ "$mtime" -ge "$newest_mtime" ]; then
+                  newest_mtime="$mtime"
+                  newest_ipa="$f"
+                fi
+              done < <(find "$root" -type f -name "*.ipa" -print0 2>/dev/null)
+            fi
+          done
+
+          if [ -z "$newest_ipa" ]; then
+            echo "::warning::No .ipa found to upload as artifact."
+            exit 0
+          fi
+
+          safe_ref="${GITHUB_REF_NAME//\//-}"
+          ipa_name="Vocab-Aloud-prod-${safe_ref}-${GITHUB_RUN_NUMBER}.ipa"
+
+          mkdir -p artifacts
+          cp "$newest_ipa" "artifacts/$ipa_name"
+
+          echo "ipa_path=artifacts/$ipa_name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload IPA artifact
+        if: ${{ always() && steps.collect_ipa.outputs.ipa_path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa-${{ github.run_number }}
+          path: ${{ steps.collect_ipa.outputs.ipa_path }}
+          if-no-files-found: error
+          retention-days: 14
