@@ -5,6 +5,7 @@ import '../models/app_settings.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/credits_footer_link.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -149,6 +150,7 @@ class SettingsScreen extends StatelessWidget {
               subtitle: Text('Vocabulary Practice v1.0\nLocal-only kids vocab app.'),
             ),
           ),
+          const CreditsFooterLink(),
         ],
       ),
     );

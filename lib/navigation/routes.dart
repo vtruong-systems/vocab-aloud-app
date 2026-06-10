@@ -11,6 +11,7 @@ class AppRoutes {
   static const wordList = '/word-list';
   static const progress = '/progress';
   static const settings = '/settings';
+  static const credits = '/credits';
   static const correctAnswer = '/correct-answer';
   static const editProfile = '/edit-profile';
 }

@@ -12,6 +12,7 @@ import '../utils/progress_helpers.dart';
 import '../utils/set_search.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/credits_footer_link.dart';
 import '../widgets/home_icon_button.dart';
 import '../widgets/profile_menu_button.dart';
 import '../widgets/word_set_card.dart';
@@ -308,6 +309,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
               visibleSets,
             ),
           ),
+          const CreditsFooterLink(),
         ],
       ),
     );
