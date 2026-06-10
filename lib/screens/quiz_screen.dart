@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/activity_entry.dart';
 import '../models/vocabulary_word.dart';
 import '../state/app_controller.dart';
 import '../utils/session_completion.dart';
@@ -21,6 +22,7 @@ class _QuizScreenState extends State<QuizScreen> {
   final Set<String> _missedWordIds = {};
 
   late List<VocabularyWord> _session;
+  late final int _sessionWordCount;
   int _index = 0;
   List<VocabularyWord> _choices = [];
   String? _selectedId;
@@ -38,6 +40,7 @@ class _QuizScreenState extends State<QuizScreen> {
     final controller = context.read<AppController>();
     final set = controller.selectedSet!;
     _session = buildQuizSession(set.words, controller.getSelectedSetProgress());
+    _sessionWordCount = _session.length;
     _loadQuestion();
   }
 
@@ -117,6 +120,8 @@ class _QuizScreenState extends State<QuizScreen> {
       missedWords: missedWordsFromSession(_session, _missedWordIds),
       controller: controller,
       statsBefore: statsBefore,
+      activityType: ActivityType.quiz,
+      sessionWordCount: _sessionWordCount,
     );
   }
 

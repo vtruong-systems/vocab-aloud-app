@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/vocabulary_sets.dart';
+import '../models/activity_entry.dart';
 import '../models/app_settings.dart';
 import '../models/app_state.dart';
 import '../models/local_profile.dart';
@@ -13,6 +14,7 @@ import '../services/text_to_speech_service.dart';
 import '../utils/progress_helpers.dart';
 
 const maxProfiles = 10;
+const maxActivityLogEntries = 200;
 const presetEmojis = ['🦊', '🐶', '🐱', '🐻', '🦁', '🐸', '🐼', '🦄', '🌟', '📚'];
 
 class AppController extends ChangeNotifier {
@@ -86,6 +88,47 @@ class AppController extends ChangeNotifier {
       getSelectedSetProgress(),
       requireTyped: settings.requireTypeItForCompletion,
     );
+  }
+
+  List<ActivityEntry> get activityLog {
+    final progress = _activeProgress;
+    if (progress == null) return const [];
+    return List<ActivityEntry>.from(progress.activityLog);
+  }
+
+  Future<void> logActivity({
+    required ActivityType type,
+    required String setId,
+    required String setTitle,
+    int? correctCount,
+    int? totalCount,
+  }) async {
+    final profileId = _state.activeProfileId;
+    if (profileId == null) return;
+
+    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final entry = ActivityEntry(
+      id: 'activity-${_uuid.v4()}',
+      completedAt: DateTime.now().toUtc(),
+      type: type,
+      setId: setId,
+      setTitle: setTitle,
+      correctCount: correctCount,
+      totalCount: totalCount,
+    );
+
+    final updatedLog = [entry, ...current.activityLog];
+    if (updatedLog.length > maxActivityLogEntries) {
+      updatedLog.removeRange(maxActivityLogEntries, updatedLog.length);
+    }
+
+    _state = _state.copyWith(
+      profileProgress: {
+        ..._state.profileProgress,
+        profileId: current.copyWith(activityLog: updatedLog),
+      },
+    );
+    await _persist();
   }
 
   Future<void> createProfile({

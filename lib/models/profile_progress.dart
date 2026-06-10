@@ -1,3 +1,4 @@
+import 'activity_entry.dart';
 import 'word_progress.dart';
 
 class SetProgress {
@@ -39,23 +40,27 @@ class ProfileProgress {
     this.selectedSetId,
     this.lastModeBySet = const {},
     this.sets = const {},
+    this.activityLog = const [],
   });
 
   final String? selectedSetId;
   final Map<String, String> lastModeBySet;
   final Map<String, SetProgress> sets;
+  final List<ActivityEntry> activityLog;
 
   ProfileProgress copyWith({
     String? selectedSetId,
     bool clearSelectedSetId = false,
     Map<String, String>? lastModeBySet,
     Map<String, SetProgress>? sets,
+    List<ActivityEntry>? activityLog,
   }) {
     return ProfileProgress(
       selectedSetId:
           clearSelectedSetId ? null : (selectedSetId ?? this.selectedSetId),
       lastModeBySet: lastModeBySet ?? this.lastModeBySet,
       sets: sets ?? this.sets,
+      activityLog: activityLog ?? this.activityLog,
     );
   }
 
@@ -63,10 +68,12 @@ class ProfileProgress {
         'selectedSetId': selectedSetId,
         'lastModeBySet': lastModeBySet,
         'sets': sets.map((key, value) => MapEntry(key, value.toJson())),
+        'activityLog': activityLog.map((entry) => entry.toJson()).toList(),
       };
 
   factory ProfileProgress.fromJson(Map<String, dynamic> json) {
     final rawSets = json['sets'] as Map<String, dynamic>? ?? {};
+    final rawActivityLog = json['activityLog'] as List<dynamic>? ?? [];
     return ProfileProgress(
       selectedSetId: json['selectedSetId'] as String?,
       lastModeBySet: (json['lastModeBySet'] as Map<String, dynamic>?)
@@ -78,6 +85,11 @@ class ProfileProgress {
           SetProgress.fromJson(value as Map<String, dynamic>),
         ),
       ),
+      activityLog: rawActivityLog
+          .map(
+            (item) => ActivityEntry.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
     );
   }
 }

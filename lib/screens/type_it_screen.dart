@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/activity_entry.dart';
 import '../models/vocabulary_word.dart';
 import '../state/app_controller.dart';
 import '../utils/answer_normalize.dart';
@@ -22,6 +23,7 @@ class _TypeItScreenState extends State<TypeItScreen> {
   final Set<String> _missedWordIds = {};
 
   late List<VocabularyWord> _session;
+  late final int _sessionWordCount;
   int _index = 0;
   final _controller = TextEditingController();
   int _wrongAttempts = 0;
@@ -36,6 +38,7 @@ class _TypeItScreenState extends State<TypeItScreen> {
     final app = context.read<AppController>();
     final set = app.selectedSet!;
     _session = buildTypeSession(set.words, app.getSelectedSetProgress());
+    _sessionWordCount = _session.length;
   }
 
   @override
@@ -102,6 +105,8 @@ class _TypeItScreenState extends State<TypeItScreen> {
       missedWords: missedWordsFromSession(_session, _missedWordIds),
       controller: app,
       statsBefore: statsBefore,
+      activityType: ActivityType.typeIt,
+      sessionWordCount: _sessionWordCount,
     );
   }
 

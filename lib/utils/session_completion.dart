@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/activity_entry.dart';
 import '../models/vocabulary_word.dart';
 import '../screens/session_completion_screen.dart';
 import '../screens/set_completion_dialog.dart';
@@ -12,7 +13,25 @@ Future<void> showSessionCompletionAndExit({
   required List<VocabularyWord> missedWords,
   required AppController controller,
   required SetStats? statsBefore,
+  ActivityType? activityType,
+  int? sessionWordCount,
 }) async {
+  if (!context.mounted) return;
+
+  final set = controller.selectedSet;
+  if (activityType != null &&
+      set != null &&
+      sessionWordCount != null &&
+      sessionWordCount > 0) {
+    await controller.logActivity(
+      type: activityType,
+      setId: set.id,
+      setTitle: set.title,
+      correctCount: sessionWordCount - missedWords.length,
+      totalCount: sessionWordCount,
+    );
+  }
+
   if (!context.mounted) return;
 
   await Navigator.push<void>(

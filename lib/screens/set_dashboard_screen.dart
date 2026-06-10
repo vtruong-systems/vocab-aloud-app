@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/progress_helpers.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/practice_mode_button.dart';
+import '../widgets/profile_menu_button.dart';
 import '../widgets/progress_bar_widget.dart';
 
 class SetDashboardScreen extends StatelessWidget {
@@ -53,18 +54,12 @@ class SetDashboardScreen extends StatelessWidget {
     }
 
     return AppScaffold(
-      title: 'Vocabulary Practice',
-      subtitle: '${profile.displayName} ${profile.avatarEmoji ?? ''} · ${set.title}',
+      title: set.title,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.settings),
-          onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
-        ),
-      ],
+      actions: const [ProfileMenuButton()],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

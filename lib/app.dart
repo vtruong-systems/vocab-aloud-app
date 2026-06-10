@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'navigation/routes.dart';
+import 'screens/activity_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/edit_profile_screen.dart';
@@ -54,6 +55,7 @@ class VocabApp extends StatelessWidget {
           AppRoutes.typeIt: (_) => const TypeItScreen(),
           AppRoutes.wordList: (_) => const WordListScreen(),
           AppRoutes.progress: (_) => const ProgressScreen(),
+          AppRoutes.activity: (_) => const ActivityScreen(),
           AppRoutes.settings: (_) => const SettingsScreen(),
           AppRoutes.credits: (_) => const CreditsScreen(),
         },

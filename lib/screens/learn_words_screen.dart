@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/activity_entry.dart';
 import '../models/vocabulary_word.dart';
 import '../state/app_controller.dart';
 import '../utils/session_order.dart';
@@ -89,7 +90,17 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
     if (_index < _session.length - 1) {
       _goTo(_index + 1);
     } else if (mounted) {
-      Navigator.pop(context);
+      final set = _controller.selectedSet;
+      if (set != null) {
+        await _controller.logActivity(
+          type: ActivityType.learnWords,
+          setId: set.id,
+          setTitle: set.title,
+          correctCount: _session.length,
+          totalCount: _session.length,
+        );
+      }
+      if (mounted) Navigator.pop(context);
     }
   }
 

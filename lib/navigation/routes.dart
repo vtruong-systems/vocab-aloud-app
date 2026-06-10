@@ -10,6 +10,7 @@ class AppRoutes {
   static const typeIt = '/type';
   static const wordList = '/word-list';
   static const progress = '/progress';
+  static const activity = '/activity';
   static const settings = '/settings';
   static const credits = '/credits';
   static const correctAnswer = '/correct-answer';

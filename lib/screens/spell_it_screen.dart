@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/activity_entry.dart';
 import '../models/letter_tile.dart';
 import '../models/vocabulary_word.dart';
 import '../state/app_controller.dart';
@@ -23,6 +24,7 @@ class _SpellItScreenState extends State<SpellItScreen> {
   final Set<String> _missedWordIds = {};
 
   late List<VocabularyWord> _session;
+  late final int _sessionWordCount;
   int _index = 0;
   List<LetterTile> _tiles = [];
   List<String?> _slots = [];
@@ -36,6 +38,7 @@ class _SpellItScreenState extends State<SpellItScreen> {
     final controller = context.read<AppController>();
     final set = controller.selectedSet!;
     _session = buildSpellingSession(set.words, controller.getSelectedSetProgress());
+    _sessionWordCount = _session.length;
     _setupWord();
   }
 
@@ -170,6 +173,8 @@ class _SpellItScreenState extends State<SpellItScreen> {
       missedWords: missedWordsFromSession(_session, _missedWordIds),
       controller: controller,
       statsBefore: statsBefore,
+      activityType: ActivityType.spellIt,
+      sessionWordCount: _sessionWordCount,
     );
   }
 
