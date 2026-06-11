@@ -59,10 +59,14 @@ flutter_launcher_icons:
   android: ic_launcher
   ios: true
   image_path: app_icon_fullbleed.png
+  image_path_ios: app_icon_ios.png
   remove_alpha_ios: true
   adaptive_icon_background: app_icon_background.png
   adaptive_icon_foreground: app_icon_foreground_safe.png
   adaptive_icon_foreground_inset: 0
+  macos:
+    generate: true
+    image_path: app_icon_ios.png
   web:
     generate: true
     image_path: app_icon_fullbleed.png
