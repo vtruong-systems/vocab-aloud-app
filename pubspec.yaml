@@ -61,7 +61,7 @@ flutter_launcher_icons:
   image_path: app_icon_fullbleed.png
   remove_alpha_ios: true
   adaptive_icon_background: app_icon_background.png
-  adaptive_icon_foreground: app_icon_foreground.png
+  adaptive_icon_foreground: app_icon_foreground_safe.png
   adaptive_icon_foreground_inset: 0
   web:
     generate: true
