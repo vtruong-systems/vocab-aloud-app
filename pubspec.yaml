@@ -58,13 +58,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: ic_launcher
   ios: true
-  image_path: app_icon_1024.png
+  image_path: app_icon_fullbleed.png
   remove_alpha_ios: true
+  adaptive_icon_background: app_icon_background.png
+  adaptive_icon_foreground: app_icon_foreground.png
+  adaptive_icon_foreground_inset: 0
   web:
     generate: true
-    image_path: app_icon_1024.png
-    background_color: '#4FC3F7'
-    theme_color: '#4FC3F7'
+    image_path: app_icon_fullbleed.png
+    background_color: '#30A1F6'
+    theme_color: '#30A1F6'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
