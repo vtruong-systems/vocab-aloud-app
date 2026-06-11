@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../constants/app_branding.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 
@@ -47,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Icon(Icons.menu_book_rounded, size: 72),
             SizedBox(height: 16),
-            Text('Vocabulary Practice'),
+            Text(appDisplayName),
             SizedBox(height: 24),
             CircularProgressIndicator(),
           ],

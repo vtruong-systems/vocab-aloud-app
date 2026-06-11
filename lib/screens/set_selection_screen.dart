@@ -12,7 +12,6 @@ import '../utils/progress_helpers.dart';
 import '../utils/set_search.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
-import '../widgets/credits_footer_link.dart';
 import '../widgets/home_icon_button.dart';
 import '../widgets/profile_menu_button.dart';
 import '../widgets/word_set_card.dart';
@@ -228,7 +227,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
           ElevatedButton(
             onPressed: visibleSets.isEmpty ? null : () => _continueRecent(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.learnBlue,
+              backgroundColor: AppColors.quizGreen,
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 56),
               shape: RoundedRectangleBorder(
@@ -236,7 +235,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
               ),
               elevation: 2,
             ),
-            child: const Text('Continue'),
+            child: const Text('Resume'),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -309,7 +308,6 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
               visibleSets,
             ),
           ),
-          const CreditsFooterLink(),
         ],
       ),
     );

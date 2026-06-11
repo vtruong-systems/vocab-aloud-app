@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../constants/app_branding.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
@@ -44,7 +45,7 @@ class SetDashboardScreen extends StatelessWidget {
 
     if (set == null || profile == null || stats == null) {
       return AppScaffold(
-        title: 'Vocabulary Practice',
+        title: appDisplayName,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

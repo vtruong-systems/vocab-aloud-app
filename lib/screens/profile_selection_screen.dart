@@ -7,8 +7,6 @@ import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/progress_helpers.dart';
 import '../widgets/app_scaffold.dart';
-import '../widgets/credits_footer_link.dart';
-
 class ProfileSelectionScreen extends StatelessWidget {
   const ProfileSelectionScreen({super.key});
 
@@ -143,7 +141,6 @@ class ProfileSelectionScreen extends StatelessWidget {
               ),
             ),
           ),
-          const CreditsFooterLink(),
         ],
       ),
     );

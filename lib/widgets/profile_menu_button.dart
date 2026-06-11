@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 
-enum _ProfileMenuAction { settings, activity, switchUser }
+enum _ProfileMenuAction { settings, activity, customLessons, switchUser }
 
 class ProfileMenuButton extends StatelessWidget {
   const ProfileMenuButton({super.key});
@@ -24,6 +24,8 @@ class ProfileMenuButton extends StatelessWidget {
             Navigator.pushNamed(context, AppRoutes.settings);
           case _ProfileMenuAction.activity:
             Navigator.pushNamed(context, AppRoutes.activity);
+          case _ProfileMenuAction.customLessons:
+            Navigator.pushNamed(context, AppRoutes.customLessons);
           case _ProfileMenuAction.switchUser:
             Navigator.pushReplacementNamed(
               context,
@@ -39,6 +41,10 @@ class ProfileMenuButton extends StatelessWidget {
         PopupMenuItem(
           value: _ProfileMenuAction.activity,
           child: Text('Activity'),
+        ),
+        PopupMenuItem(
+          value: _ProfileMenuAction.customLessons,
+          child: Text('Custom Lessons'),
         ),
         PopupMenuItem(
           value: _ProfileMenuAction.switchUser,

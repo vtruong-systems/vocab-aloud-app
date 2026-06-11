@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'constants/app_branding.dart';
 import 'navigation/routes.dart';
 import 'screens/activity_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/create_profile_screen.dart';
+import 'screens/custom_lessons_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/learn_words_screen.dart';
 import 'screens/profile_selection_screen.dart';
@@ -39,7 +41,7 @@ class VocabApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Vocabulary Practice',
+        title: appDisplayName,
         theme: buildAppTheme(),
         initialRoute: AppRoutes.splash,
         routes: {
@@ -56,6 +58,7 @@ class VocabApp extends StatelessWidget {
           AppRoutes.wordList: (_) => const WordListScreen(),
           AppRoutes.progress: (_) => const ProgressScreen(),
           AppRoutes.activity: (_) => const ActivityScreen(),
+          AppRoutes.customLessons: (_) => const CustomLessonsScreen(),
           AppRoutes.settings: (_) => const SettingsScreen(),
           AppRoutes.credits: (_) => const CreditsScreen(),
         },
