@@ -14,6 +14,7 @@ class WordRow {
     required this.meaning,
     required this.grade,
     required this.difficulty,
+    this.exampleSentence,
   });
 
   final String word;
@@ -21,6 +22,7 @@ class WordRow {
   final String meaning;
   final String grade;
   final String difficulty;
+  final String? exampleSentence;
 }
 
 class ParsedSet {
@@ -81,15 +83,10 @@ List<ParsedSet> loadAllSets({
 
   final communityDir = Directory(communityPath);
   if (communityDir.existsSync()) {
-    final files = communityDir
-        .listSync()
-        .whereType<File>()
-        .where((file) {
-          final name = file.uri.pathSegments.last;
-          return name.endsWith('.csv') && !name.startsWith('_');
-        })
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final files = communityDir.listSync().whereType<File>().where((file) {
+      final name = file.uri.pathSegments.last;
+      return name.endsWith('.csv') && !name.startsWith('_');
+    }).toList()..sort((a, b) => a.path.compareTo(b.path));
 
     for (final file in files) {
       final filename = file.uri.pathSegments.last;
@@ -117,6 +114,12 @@ List<ParsedSet> parseDefaultCsv(String content) {
 
   if (lines.isEmpty) {
     throw VocabularyGeneratorException('Default CSV is empty');
+  }
+  if (lines.first !=
+      'Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence,Set') {
+    throw VocabularyGeneratorException(
+      'Default CSV header must include Example Sentence before Set',
+    );
   }
 
   final sets = <int, List<WordRow>>{};
@@ -191,8 +194,7 @@ ParsedSet parseCommunityCsv(
 
   _validateSetId(setId, filename);
 
-  final description =
-      metadata['description'] ?? 'Practice words from $title.';
+  final description = metadata['description'] ?? 'Practice words from $title.';
   final theme = metadata['theme'] ?? _themeForRows(wordRows);
   final gradeLabel = _gradeLabelForRows(wordRows);
 
@@ -256,10 +258,7 @@ ParsedSet _buildDefaultSet(int setNumber, List<WordRow> rows) {
 }
 
 class _DefaultRowParseResult {
-  _DefaultRowParseResult({
-    required this.wordRow,
-    required this.setNumber,
-  });
+  _DefaultRowParseResult({required this.wordRow, required this.setNumber});
 
   final WordRow wordRow;
   final int setNumber;
@@ -267,15 +266,19 @@ class _DefaultRowParseResult {
 
 _DefaultRowParseResult _parseDefaultRow(String line) {
   final parts = line.split(',');
-  if (parts.length < 7) {
+  if (parts.length < 8) {
     throw FormatException('Invalid CSV row: $line');
   }
   final setStr = parts.last.trim();
-  final grade = parts[parts.length - 3].trim();
-  final difficulty = parts[parts.length - 2].trim();
-  final meaning = parts.sublist(2, parts.length - 4).join(',').trim();
+  final exampleSentence = parts[parts.length - 2].trim();
+  final difficulty = parts[parts.length - 3].trim();
+  final grade = parts[parts.length - 4].trim();
+  final meaning = parts.sublist(2, parts.length - 5).join(',').trim();
   final category = parts[1].trim();
   final word = parts[0].trim();
+  if (exampleSentence.isEmpty) {
+    throw FormatException('Missing example sentence for "$word"');
+  }
   return _DefaultRowParseResult(
     setNumber: int.parse(setStr),
     wordRow: WordRow(
@@ -284,6 +287,7 @@ _DefaultRowParseResult _parseDefaultRow(String line) {
       meaning: meaning,
       grade: grade,
       difficulty: difficulty,
+      exampleSentence: exampleSentence,
     ),
   );
 }
@@ -379,7 +383,9 @@ void _writeSetConst(StringBuffer buffer, ParsedSet set, String constName) {
     final difficulty = _difficultyFromCsv(row.difficulty);
     final gradeLevel = _gradeLevelForCsv(row.grade);
     final partOfSpeech = _partOfSpeechForCategory(row.category);
-    final example = _exampleSentence(row.word, row.category, row.meaning);
+    final example =
+        row.exampleSentence ??
+        _exampleSentence(row.word, row.category, row.meaning);
     buffer.writeln('    VocabularyWord(');
     buffer.writeln("      id: '$wordId',");
     buffer.writeln("      word: '${_escapeDart(row.word)}',");
