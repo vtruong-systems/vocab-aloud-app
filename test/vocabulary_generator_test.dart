@@ -11,6 +11,10 @@ void main() {
       expect(sets[0].id, 'vocab-set-01');
       expect(sets[0].words, hasLength(2));
       expect(sets[0].source, SetSource.defaultSet);
+      expect(
+        sets[0].words.first.exampleSentence,
+        'Alpha has a curated sentence.',
+      );
       expect(sets[1].id, 'vocab-set-02');
       expect(sets[1].words.single.word, 'Gamma');
     });
@@ -107,18 +111,44 @@ void main() {
       );
     });
   });
+
+  group('generateDartSource', () {
+    test('uses curated default examples and fallback community examples', () {
+      final defaultSets = parseDefaultCsv(_fixture('default.csv'));
+      final communitySet = parseCommunityCsv(
+        _fixture('community-sample.csv'),
+        filename: 'test-teacher-week-1.csv',
+        setIdFromFilename: 'test-teacher-week-1',
+      );
+
+      final source = generateDartSource([...defaultSets, communitySet]);
+
+      expect(
+        source,
+        contains("exampleSentence: 'Alpha has a curated sentence.'"),
+      );
+      expect(
+        source,
+        contains(
+          "exampleSentence: 'During class, we learned to delta together.'",
+        ),
+      );
+    });
+  });
 }
 
 String _fixture(String name) {
   // Test fixtures live beside this file under test/fixtures/vocabulary/.
   return switch (name) {
-    'default.csv' => '''
-Word,Category,Meaning,Related Words,Grade,Difficulty,Set
-Alpha,Instructional Language,First test word,one,1,easy,1
-Beta,Mathematics,Second test word,two,2,medium,1
-Gamma,Scientific Thinking,Third test word,three,3,hard,2
+    'default.csv' =>
+      '''
+Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence,Set
+Alpha,Instructional Language,First test word,one,1,easy,Alpha has a curated sentence.,1
+Beta,Mathematics,Second test word,two,2,medium,Beta has a curated sentence.,1
+Gamma,Scientific Thinking,Third test word,three,3,hard,Gamma has a curated sentence.,2
 ''',
-    'community-sample.csv' => '''
+    'community-sample.csv' =>
+      '''
 # set_id,test-teacher-week-1
 # title,Test Teacher Week 1
 # teacher,Ms. Test
@@ -128,7 +158,8 @@ Gamma,Scientific Thinking,Third test word,three,3,hard,2
 Word,Category,Meaning,Related Words,Grade,Difficulty
 Delta,Instructional Language,Fourth test word,four,1,easy
 ''',
-    'community-duplicate-id.csv' => '''
+    'community-duplicate-id.csv' =>
+      '''
 # set_id,vocab-set-99
 # title,Reserved ID Set
 Word,Category,Meaning,Related Words,Grade,Difficulty
