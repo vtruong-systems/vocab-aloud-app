@@ -6,6 +6,7 @@ class LocalProfile {
     required this.displayName,
     required this.createdAt,
     this.avatarEmoji,
+    this.avatarPremiumId,
     this.maxGradeLevel,
   });
 
@@ -13,6 +14,7 @@ class LocalProfile {
   final String displayName;
   final DateTime createdAt;
   final String? avatarEmoji;
+  final String? avatarPremiumId;
   final GradeLevel? maxGradeLevel;
 
   GradeLevel get effectiveMaxGradeLevel =>
@@ -21,14 +23,18 @@ class LocalProfile {
   LocalProfile copyWith({
     String? displayName,
     String? avatarEmoji,
+    String? avatarPremiumId,
     GradeLevel? maxGradeLevel,
     bool clearMaxGradeLevel = false,
+    bool clearAvatarPremiumId = false,
   }) {
     return LocalProfile(
       id: id,
       displayName: displayName ?? this.displayName,
       createdAt: createdAt,
       avatarEmoji: avatarEmoji ?? this.avatarEmoji,
+      avatarPremiumId:
+          clearAvatarPremiumId ? null : (avatarPremiumId ?? this.avatarPremiumId),
       maxGradeLevel:
           clearMaxGradeLevel ? null : (maxGradeLevel ?? this.maxGradeLevel),
     );
@@ -39,6 +45,7 @@ class LocalProfile {
         'displayName': displayName,
         'createdAt': createdAt.toIso8601String(),
         'avatarEmoji': avatarEmoji,
+        if (avatarPremiumId != null) 'avatarPremiumId': avatarPremiumId,
         if (maxGradeLevel != null) 'maxGradeLevel': maxGradeLevel!.toJson(),
       };
 
@@ -48,6 +55,7 @@ class LocalProfile {
       displayName: json['displayName'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       avatarEmoji: json['avatarEmoji'] as String?,
+      avatarPremiumId: json['avatarPremiumId'] as String?,
       maxGradeLevel: GradeLevel.fromJson(json['maxGradeLevel'] as String?),
     );
   }

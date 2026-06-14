@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
+import 'profile_avatar.dart';
 
 enum _ProfileMenuAction { settings, activity, customLessons, switchUser }
 
@@ -13,8 +14,6 @@ class ProfileMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final profile = context.watch<AppController>().activeProfile;
     if (profile == null) return const SizedBox.shrink();
-
-    final emoji = profile.avatarEmoji ?? presetEmojis.first;
 
     return PopupMenuButton<_ProfileMenuAction>(
       offset: const Offset(0, 48),
@@ -56,7 +55,7 @@ class ProfileMenuButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 28)),
+            ProfileAvatar(profile: profile),
             const SizedBox(width: 4),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 72),

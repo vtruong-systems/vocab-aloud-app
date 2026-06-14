@@ -8,6 +8,7 @@ import 'screens/credits_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/custom_lessons_screen.dart';
 import 'screens/edit_profile_screen.dart';
+import 'screens/icon_store_screen.dart';
 import 'screens/learn_words_screen.dart';
 import 'screens/profile_selection_screen.dart';
 import 'screens/progress_screen.dart';
@@ -19,6 +20,7 @@ import 'screens/splash_screen.dart';
 import 'screens/spell_it_screen.dart';
 import 'screens/type_it_screen.dart';
 import 'screens/word_list_screen.dart';
+import 'services/purchase_service.dart';
 import 'services/app_storage_service.dart';
 import 'services/text_to_speech_service.dart';
 import 'state/app_controller.dart';
@@ -33,10 +35,12 @@ class VocabApp extends StatelessWidget {
       providers: [
         Provider(create: (_) => AppStorageService()),
         Provider(create: (_) => TextToSpeechService()),
+        Provider<PurchaseService>(create: (_) => const StubPurchaseService()),
         ChangeNotifierProvider(
           create: (context) => AppController(
             storage: context.read<AppStorageService>(),
             tts: context.read<TextToSpeechService>(),
+            purchaseService: context.read<PurchaseService>(),
           ),
         ),
       ],
@@ -49,6 +53,7 @@ class VocabApp extends StatelessWidget {
           AppRoutes.createProfile: (_) => const CreateProfileScreen(),
           AppRoutes.profileSelection: (_) => const ProfileSelectionScreen(),
           AppRoutes.editProfile: (_) => const EditProfileScreen(),
+          AppRoutes.iconStore: (_) => const IconStoreScreen(),
           AppRoutes.setSelection: (_) => const SetSelectionScreen(),
           AppRoutes.setDashboard: (_) => const SetDashboardScreen(),
           AppRoutes.learnWords: (_) => const LearnWordsScreen(),

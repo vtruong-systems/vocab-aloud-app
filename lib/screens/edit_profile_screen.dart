@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/profile_avatar.dart';
 import '../widgets/profile_emoji_picker.dart';
 
 class EditProfileScreen extends StatelessWidget {
@@ -134,8 +135,7 @@ class EditProfileScreen extends StatelessWidget {
           final profile = controller.profiles[index];
           return Card(
             child: ListTile(
-              leading: Text(profile.avatarEmoji ?? presetEmojis.first,
-                  style: const TextStyle(fontSize: 28)),
+              leading: ProfileAvatar(profile: profile, size: 28),
               title: Text(profile.displayName),
               trailing: PopupMenuButton<String>(
                 onSelected: (value) async {

@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+export '../data/profile_icon_catalog.dart' show presetEmojis;
+
+import '../data/profile_icon_catalog.dart';
 import '../data/vocabulary_sets.dart';
 import '../models/activity_entry.dart';
 import '../models/app_settings.dart';
@@ -9,23 +12,26 @@ import '../models/local_profile.dart';
 import '../models/profile_progress.dart';
 import '../models/vocabulary_set.dart';
 import '../models/word_progress.dart';
+import '../services/purchase_service.dart';
 import '../services/app_storage_service.dart';
 import '../services/text_to_speech_service.dart';
 import '../utils/progress_helpers.dart';
 
 const maxProfiles = 10;
 const maxActivityLogEntries = 200;
-const presetEmojis = ['🦊', '🐶', '🐱', '🐻', '🦁', '🐸', '🐼', '🦄', '🌟', '📚'];
 
 class AppController extends ChangeNotifier {
   AppController({
     required AppStorageService storage,
     required TextToSpeechService tts,
+    required PurchaseService purchaseService,
   })  : _storage = storage,
-        _tts = tts;
+        _tts = tts,
+        _purchaseService = purchaseService;
 
   final AppStorageService _storage;
   final TextToSpeechService _tts;
+  final PurchaseService _purchaseService;
   final _uuid = const Uuid();
 
   AppState _state = AppState.empty();
@@ -42,6 +48,7 @@ class AppController extends ChangeNotifier {
 
   AppSettings get settings => _state.settings;
   TextToSpeechService get tts => _tts;
+  List<String> get ownedPremiumIconIds => _state.ownedPremiumIconIds;
 
   ProfileProgress? get _activeProgress {
     final profileId = _state.activeProfileId;
@@ -171,12 +178,74 @@ class AppController extends ChangeNotifier {
       profiles: _state.profiles
           .map(
             (profile) => profile.id == profileId
-                ? profile.copyWith(avatarEmoji: emoji)
+                ? profile.copyWith(
+                    avatarEmoji: emoji,
+                    clearAvatarPremiumId: true,
+                  )
                 : profile,
           )
           .toList(),
     );
     await _persist();
+  }
+
+  bool isIconOwned(ProfileIconEntry entry) {
+    if (entry.free) return true;
+    return _state.ownedPremiumIconIds.contains(entry.id);
+  }
+
+  bool isIconEquipped(ProfileIconEntry entry) {
+    final profile = activeProfile;
+    if (profile == null) return false;
+
+    switch (entry.kind) {
+      case ProfileIconKind.premium:
+        return profile.avatarPremiumId == entry.id;
+      case ProfileIconKind.emoji:
+        return profile.avatarPremiumId == null &&
+            (profile.avatarEmoji ?? presetEmojis.first) == entry.emoji;
+    }
+  }
+
+  Future<void> equipProfileIcon(ProfileIconEntry entry) async {
+    final profileId = _state.activeProfileId;
+    if (profileId == null) return;
+
+    _state = _state.copyWith(
+      profiles: _state.profiles
+          .map(
+            (profile) {
+              if (profile.id != profileId) return profile;
+              switch (entry.kind) {
+                case ProfileIconKind.premium:
+                  return profile.copyWith(avatarPremiumId: entry.id);
+                case ProfileIconKind.emoji:
+                  return profile.copyWith(
+                    avatarEmoji: entry.emoji ?? presetEmojis.first,
+                    clearAvatarPremiumId: true,
+                  );
+              }
+            },
+          )
+          .toList(),
+    );
+    await _persist();
+  }
+
+  Future<bool> purchasePremiumIcon(String iconId) async {
+    if (_state.ownedPremiumIconIds.contains(iconId)) return true;
+
+    final entry = ProfileIconCatalog.findById(iconId);
+    if (entry == null || entry.kind != ProfileIconKind.premium) return false;
+
+    final success = await _purchaseService.purchaseProduct(entry.productId);
+    if (!success) return false;
+
+    _state = _state.copyWith(
+      ownedPremiumIconIds: [..._state.ownedPremiumIconIds, iconId],
+    );
+    await _persist();
+    return true;
   }
 
   Future<void> deleteProfile(String profileId) async {

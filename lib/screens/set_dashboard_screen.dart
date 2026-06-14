@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../utils/progress_helpers.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/practice_mode_button.dart';
-import '../widgets/profile_menu_button.dart';
+import '../widgets/profile_app_bar_actions.dart';
 import '../widgets/progress_bar_widget.dart';
 
 class SetDashboardScreen extends StatelessWidget {
@@ -60,7 +60,7 @@ class SetDashboardScreen extends StatelessWidget {
         icon: const Icon(Icons.arrow_back),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: const [ProfileMenuButton()],
+      actions: const [ProfileAppBarActions()],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
