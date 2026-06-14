@@ -49,6 +49,7 @@ class AppController extends ChangeNotifier {
   AppSettings get settings => _state.settings;
   TextToSpeechService get tts => _tts;
   List<String> get ownedPremiumIconIds => _state.ownedPremiumIconIds;
+  bool get usesStubPurchases => _purchaseService.isStubFallback;
 
   ProfileProgress? get _activeProgress {
     final profileId = _state.activeProfileId;
@@ -60,8 +61,31 @@ class AppController extends ChangeNotifier {
     _state = await _storage.load();
     await _tts.initialize();
     await _tts.applySpeechSpeed(_state.settings.speechSpeed);
+    await _syncStoreEntitlements();
     _loaded = true;
     notifyListeners();
+  }
+
+  Future<void> _syncStoreEntitlements() async {
+    if (_purchaseService.isStubFallback) return;
+
+    final restoredIds = await _purchaseService.restorePurchases();
+    if (restoredIds.isEmpty) return;
+
+    final merged = {..._state.ownedPremiumIconIds, ...restoredIds}.toList();
+    if (merged.length == _state.ownedPremiumIconIds.length) return;
+
+    _state = _state.copyWith(ownedPremiumIconIds: merged);
+    await _storage.save(_state);
+  }
+
+  Future<int> restorePurchases() async {
+    final restoredIds = await _purchaseService.restorePurchases();
+    final before = _state.ownedPremiumIconIds.toSet();
+    final merged = {...before, ...restoredIds}.toList();
+    _state = _state.copyWith(ownedPremiumIconIds: merged);
+    await _persist();
+    return merged.length - before.length;
   }
 
   Future<void> _persist() async {
@@ -232,20 +256,29 @@ class AppController extends ChangeNotifier {
     await _persist();
   }
 
-  Future<bool> purchasePremiumIcon(String iconId) async {
-    if (_state.ownedPremiumIconIds.contains(iconId)) return true;
+  Future<PremiumPurchaseResult> purchasePremiumIcon(String iconId) async {
+    if (_state.ownedPremiumIconIds.contains(iconId)) {
+      return PremiumPurchaseResult.success;
+    }
 
     final entry = ProfileIconCatalog.findById(iconId);
-    if (entry == null || entry.kind != ProfileIconKind.premium) return false;
+    if (entry == null || entry.kind != ProfileIconKind.premium) {
+      return PremiumPurchaseResult.failed;
+    }
+
+    if (!await _purchaseService.isStoreAvailable() &&
+        !_purchaseService.isStubFallback) {
+      return PremiumPurchaseResult.storeUnavailable;
+    }
 
     final success = await _purchaseService.purchaseProduct(entry.productId);
-    if (!success) return false;
+    if (!success) return PremiumPurchaseResult.failed;
 
     _state = _state.copyWith(
       ownedPremiumIconIds: [..._state.ownedPremiumIconIds, iconId],
     );
     await _persist();
-    return true;
+    return PremiumPurchaseResult.success;
   }
 
   Future<void> deleteProfile(String profileId) async {

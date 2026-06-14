@@ -41,6 +41,19 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _restorePurchases(BuildContext context) async {
+    final controller = context.read<AppController>();
+    final restoredCount = await controller.restorePurchases();
+    if (!context.mounted) return;
+
+    final message = restoredCount > 0
+        ? 'Restored $restoredCount premium icon(s).'
+        : 'No purchases found to restore.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
@@ -137,6 +150,19 @@ class SettingsScreen extends StatelessWidget {
                   },
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              title: const Text('Restore Purchases'),
+              subtitle: Text(
+                controller.usesStubPurchases
+                    ? 'Store billing is unavailable; using local test mode.'
+                    : 'Restore premium icons purchased on this device.',
+              ),
+              trailing: const Icon(Icons.restore),
+              onTap: () => _restorePurchases(context),
             ),
           ),
           const SizedBox(height: 12),

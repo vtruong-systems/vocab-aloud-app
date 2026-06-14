@@ -1,0 +1,10 @@
+[
+  {
+    "productId": "vocab_icon_octopus",
+    "iconId": "octopus",
+    "type": "non_consumable",
+    "priceUsd": "0.99",
+    "playConsolePath": "Monetize > Products > One-time products",
+    "notes": "Create after uploading an AAB with com.android.vending.BILLING. Add license testers for internal track testing."
+  }
+]

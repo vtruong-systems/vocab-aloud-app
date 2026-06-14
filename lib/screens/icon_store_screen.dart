@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/profile_icon_catalog.dart';
+import '../services/purchase_service.dart';
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/profile_avatar.dart';
@@ -102,17 +103,45 @@ class IconStoreScreen extends StatelessWidget {
     if (!passedGate || !context.mounted) return;
 
     final controller = context.read<AppController>();
-    final success = await controller.purchasePremiumIcon(entry.id);
     if (!context.mounted) return;
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${entry.displayName} unlocked.')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Purchase could not be completed.')),
-      );
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    final result = await controller.purchasePremiumIcon(entry.id);
+    if (!context.mounted) return;
+    Navigator.pop(context);
+
+    switch (result) {
+      case PremiumPurchaseResult.success:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${entry.displayName} unlocked.')),
+        );
+      case PremiumPurchaseResult.storeUnavailable:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'The app store is not available on this device.',
+            ),
+          ),
+        );
+      case PremiumPurchaseResult.cancelled:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Purchase cancelled.')),
+        );
+      case PremiumPurchaseResult.failed:
+        final message = controller.usesStubPurchases
+            ? 'Purchase could not be completed.'
+            : 'Purchase was cancelled or could not be completed.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
     }
   }
 
