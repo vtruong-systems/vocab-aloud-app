@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/profile_emoji_picker.dart';
 
 class EditProfileScreen extends StatelessWidget {
   const EditProfileScreen({super.key});
@@ -39,6 +40,47 @@ class EditProfileScreen extends StatelessWidget {
 
     if (result != null && result.trim().isNotEmpty) {
       await controller.renameProfile(profileId, result);
+    }
+  }
+
+  Future<void> _changeIcon(
+    BuildContext context,
+    AppController controller,
+    String profileId,
+    String currentEmoji,
+  ) async {
+    var selectedEmoji = currentEmoji;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Change icon'),
+              content: ProfileEmojiPicker(
+                selectedEmoji: selectedEmoji,
+                onEmojiSelected: (emoji) {
+                  setDialogState(() => selectedEmoji = emoji);
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, selectedEmoji),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      await controller.updateProfileEmoji(profileId, result);
     }
   }
 
@@ -92,7 +134,7 @@ class EditProfileScreen extends StatelessWidget {
           final profile = controller.profiles[index];
           return Card(
             child: ListTile(
-              leading: Text(profile.avatarEmoji ?? '📚',
+              leading: Text(profile.avatarEmoji ?? presetEmojis.first,
                   style: const TextStyle(fontSize: 28)),
               title: Text(profile.displayName),
               trailing: PopupMenuButton<String>(
@@ -103,6 +145,13 @@ class EditProfileScreen extends StatelessWidget {
                       controller,
                       profile.id,
                       profile.displayName,
+                    );
+                  } else if (value == 'change_icon') {
+                    await _changeIcon(
+                      context,
+                      controller,
+                      profile.id,
+                      profile.avatarEmoji ?? presetEmojis.first,
                     );
                   } else if (value == 'delete') {
                     await _deleteProfile(
@@ -115,6 +164,7 @@ class EditProfileScreen extends StatelessWidget {
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  PopupMenuItem(value: 'change_icon', child: Text('Change icon')),
                   PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),

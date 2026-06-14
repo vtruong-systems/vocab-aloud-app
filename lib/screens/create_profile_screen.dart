@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/profile_emoji_picker.dart';
 
 class CreateProfileScreen extends StatefulWidget {
   const CreateProfileScreen({super.key});
@@ -66,17 +67,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   const SizedBox(height: 20),
                   Text('Pick an emoji', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: presetEmojis.map((emoji) {
-                      final selected = emoji == _selectedEmoji;
-                      return ChoiceChip(
-                        label: Text(emoji, style: const TextStyle(fontSize: 28)),
-                        selected: selected,
-                        onSelected: (_) => setState(() => _selectedEmoji = emoji),
-                      );
-                    }).toList(),
+                  ProfileEmojiPicker(
+                    selectedEmoji: _selectedEmoji,
+                    onEmojiSelected: (emoji) =>
+                        setState(() => _selectedEmoji = emoji),
                   ),
                 ],
               ),
