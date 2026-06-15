@@ -63,6 +63,10 @@
       debugServiceExtension = "internal"
       enableGPUValidationMode = "1"
       allowLocationSimulation = "YES">
+      <StoreKitConfigurationFileReference
+         identifier = "VocabAloudProducts"
+         path = "VocabAloudProducts.storekit">
+      </StoreKitConfigurationFileReference>
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference

@@ -7,6 +7,10 @@ void main() {
       iconIdFromProductId('blueberini_octopusini_icon'),
       'octopus',
     );
+    expect(
+      iconIdFromProductId('ballerina_cappuccina_icon'),
+      'ballerina',
+    );
     expect(iconIdFromProductId('unknown_product'), isNull);
   });
 
@@ -14,9 +18,20 @@ void main() {
     expect(
       iconIdsFromProductIds([
         'blueberini_octopusini_icon',
+        'ballerina_cappuccina_icon',
         'unknown',
       ]),
-      {'octopus'},
+      {'octopus', 'ballerina'},
+    );
+  });
+
+  test('premiumProductIds includes all catalog store SKUs', () {
+    expect(
+      premiumProductIds(),
+      {
+        'blueberini_octopusini_icon',
+        'ballerina_cappuccina_icon',
+      },
     );
   });
 }

@@ -59,6 +59,12 @@ class ProfileIconCatalog {
 
   static const List<ProfileIconEntry> _premiumIcons = [
     ProfileIconEntry(
+      id: 'ballerina',
+      kind: ProfileIconKind.premium,
+      assetPath: 'assets/icons/premium/ballerina.png',
+      storeProductId: 'ballerina_cappuccina_icon',
+    ),
+    ProfileIconEntry(
       id: 'octopus',
       kind: ProfileIconKind.premium,
       assetPath: 'assets/icons/premium/octopus.png',

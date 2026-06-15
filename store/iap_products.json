@@ -6,6 +6,17 @@
     "priceUsd": "0.99",
     "purchaseOptionId": "default",
     "playConsolePath": "Monetize > Products > One-time products",
-    "notes": "Create after uploading an AAB with com.android.vending.BILLING. Add license testers for internal track testing."
+    "appStoreConnectPath": "My Apps > Vocab Aloud > In-App Purchases",
+    "notes": "Same product ID on Play and App Store. Test Android via internal track + license testers; test iOS via TestFlight or Xcode with VocabAloudProducts.storekit and a sandbox Apple ID."
+  },
+  {
+    "productId": "ballerina_cappuccina_icon",
+    "iconId": "ballerina",
+    "type": "non_consumable",
+    "priceUsd": "0.99",
+    "purchaseOptionId": "default",
+    "playConsolePath": "Monetize > Products > One-time products",
+    "appStoreConnectPath": "My Apps > Vocab Aloud > In-App Purchases",
+    "notes": "Same product ID on Play and App Store. Test Android via internal track + license testers; test iOS via TestFlight or Xcode with VocabAloudProducts.storekit and a sandbox Apple ID."
   }
 ]

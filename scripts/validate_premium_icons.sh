@@ -10,6 +10,10 @@ set -euo pipefail
 # Env overrides:
 #   TARGET_SIZE=256 MAX_FILE_KB=150 REQUIRE_SQUARE=1 REQUIRE_ALPHA=1
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/premium_icon_image.sh
+source "$SCRIPT_DIR/lib/premium_icon_image.sh"
+
 FIX=0
 if [[ "${1:-}" == "--fix" ]]; then
   FIX=1
@@ -29,8 +33,8 @@ if ! command -v ffprobe >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ "$FIX" == "1" ]] && ! command -v ffmpeg >/dev/null 2>&1; then
-  echo "ffmpeg not found. Install ffmpeg: brew install ffmpeg"
+if ! command -v magick >/dev/null 2>&1; then
+  echo "magick not found. Install ImageMagick: brew install imagemagick"
   exit 1
 fi
 
@@ -95,27 +99,39 @@ evaluate_icon() {
     icon_notes+=("file too big (${file_kb}KB > ${MAX_FILE_KB}KB)")
     icon_ok=0
   fi
+
+  if premium_icon_needs_squircle_crop "$f"; then
+    icon_notes+=("black corner padding (crop and zoom)")
+    icon_ok=0
+  fi
+}
+
+icon_needs_normalization() {
+  (( ! icon_ok )) || return 1
+  return 0
 }
 
 normalize_icon() {
   local f="$1"
   local rel="${f#"$ICON_DIR"/}"
-  local tmp
+  local tmp crop_pct
   tmp="$(mktemp "${TMPDIR:-/tmp}/premium-icon.XXXXXX.png")"
 
   evaluate_icon "$f"
   local before="${width}x${height}"
   local size_before="$file_kb"
+  crop_pct="$(premium_icon_find_squircle_crop_percent "$f")"
 
-  ffmpeg -y -v error -i "$f" \
-    -vf "crop=min(iw\,ih):min(iw\,ih),scale=${TARGET_SIZE}:${TARGET_SIZE}" \
-    -pix_fmt rgba \
-    "$tmp"
+  premium_icon_render "$f" "$tmp" "$TARGET_SIZE"
 
   mv "$tmp" "$f"
 
   evaluate_icon "$f"
-  echo "FIX  $rel  ${before} ${size_before}KB -> ${width}x${height} ${file_kb}KB"
+  if [[ "$crop_pct" != "100" ]]; then
+    echo "FIX  $rel  ${before} ${size_before}KB -> ${width}x${height} ${file_kb}KB (crop ${crop_pct}%)"
+  else
+    echo "FIX  $rel  ${before} ${size_before}KB -> ${width}x${height} ${file_kb}KB"
+  fi
 }
 
 collect_files() {
@@ -136,11 +152,11 @@ if [[ "$FIX" == "1" ]]; then
   skipped=0
   for f in "${files[@]}"; do
     evaluate_icon "$f"
-    if (( icon_ok )); then
-      ((skipped++)) || true
-    else
+    if icon_needs_normalization; then
       normalize_icon "$f"
       ((fixed++)) || true
+    else
+      ((skipped++)) || true
     fi
   done
 
