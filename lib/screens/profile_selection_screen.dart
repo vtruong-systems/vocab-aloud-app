@@ -7,6 +7,7 @@ import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/progress_helpers.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/profile_avatar.dart';
 class ProfileSelectionScreen extends StatelessWidget {
   const ProfileSelectionScreen({super.key});
 
@@ -71,10 +72,7 @@ class ProfileSelectionScreen extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  profile.avatarEmoji ?? '📚',
-                                  style: const TextStyle(fontSize: 26),
-                                ),
+                                ProfileAvatar(profile: profile, size: 26),
                                 const SizedBox(height: 2),
                                 Text(
                                   profile.displayName,

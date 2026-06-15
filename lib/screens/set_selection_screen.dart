@@ -13,7 +13,7 @@ import '../utils/set_search.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/home_icon_button.dart';
-import '../widgets/profile_menu_button.dart';
+import '../widgets/profile_app_bar_actions.dart';
 import '../widgets/word_set_card.dart';
 
 class SetSelectionScreen extends StatefulWidget {
@@ -220,7 +220,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
 
     return AppScaffold(
       leading: const HomeIconButton(),
-      actions: const [ProfileMenuButton()],
+      actions: const [ProfileAppBarActions()],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

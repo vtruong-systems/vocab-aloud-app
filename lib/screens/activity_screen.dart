@@ -25,8 +25,7 @@ class ActivityScreen extends StatelessWidget {
       );
     }
 
-    final subtitle =
-        '${profile.displayName} ${profile.avatarEmoji ?? presetEmojis.first}';
+    final subtitle = profile.displayName;
 
     return AppScaffold(
       title: 'Activity',

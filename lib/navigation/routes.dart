@@ -16,4 +16,5 @@ class AppRoutes {
   static const credits = '/credits';
   static const correctAnswer = '/correct-answer';
   static const editProfile = '/edit-profile';
+  static const iconStore = '/icon-store';
 }

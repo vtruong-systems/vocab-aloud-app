@@ -8,18 +8,21 @@ class AppState {
     this.profiles = const [],
     this.profileProgress = const {},
     this.settings = const AppSettings(),
+    this.ownedPremiumIconIds = const [],
   });
 
   final String? activeProfileId;
   final List<LocalProfile> profiles;
   final Map<String, ProfileProgress> profileProgress;
   final AppSettings settings;
+  final List<String> ownedPremiumIconIds;
 
   AppState copyWith({
     String? activeProfileId,
     List<LocalProfile>? profiles,
     Map<String, ProfileProgress>? profileProgress,
     AppSettings? settings,
+    List<String>? ownedPremiumIconIds,
     bool clearActiveProfile = false,
   }) {
     return AppState(
@@ -28,6 +31,7 @@ class AppState {
       profiles: profiles ?? this.profiles,
       profileProgress: profileProgress ?? this.profileProgress,
       settings: settings ?? this.settings,
+      ownedPremiumIconIds: ownedPremiumIconIds ?? this.ownedPremiumIconIds,
     );
   }
 
@@ -38,6 +42,7 @@ class AppState {
           (key, value) => MapEntry(key, value.toJson()),
         ),
         'settings': settings.toJson(),
+        'ownedPremiumIconIds': ownedPremiumIconIds,
       };
 
   factory AppState.fromJson(Map<String, dynamic> json) {
@@ -56,6 +61,9 @@ class AppState {
       settings: AppSettings.fromJson(
         json['settings'] as Map<String, dynamic>? ?? {},
       ),
+      ownedPremiumIconIds: (json['ownedPremiumIconIds'] as List<dynamic>? ?? [])
+          .map((item) => item as String)
+          .toList(),
     );
   }
 
