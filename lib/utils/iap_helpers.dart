@@ -1,10 +1,13 @@
 import '../data/profile_icon_catalog.dart';
 
-const iapProductIdPrefix = 'vocab_icon_';
-
 String? iconIdFromProductId(String productId) {
-  if (!productId.startsWith(iapProductIdPrefix)) return null;
-  return productId.substring(iapProductIdPrefix.length);
+  for (final entry in ProfileIconCatalog.allIcons) {
+    if (entry.kind == ProfileIconKind.premium &&
+        entry.productId == productId) {
+      return entry.id;
+    }
+  }
+  return null;
 }
 
 Set<String> premiumProductIds() {

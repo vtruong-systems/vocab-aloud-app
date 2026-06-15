@@ -1,9 +1,10 @@
 [
   {
-    "productId": "vocab_icon_octopus",
+    "productId": "blueberini_octopusini_icon",
     "iconId": "octopus",
     "type": "non_consumable",
     "priceUsd": "0.99",
+    "purchaseOptionId": "default",
     "playConsolePath": "Monetize > Products > One-time products",
     "notes": "Create after uploading an AAB with com.android.vending.BILLING. Add license testers for internal track testing."
   }

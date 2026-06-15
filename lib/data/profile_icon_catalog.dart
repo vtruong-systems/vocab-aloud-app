@@ -21,6 +21,7 @@ class ProfileIconEntry {
     required this.kind,
     this.emoji,
     this.assetPath,
+    this.storeProductId,
     this.featured = false,
     this.free = false,
   });
@@ -29,11 +30,12 @@ class ProfileIconEntry {
   final ProfileIconKind kind;
   final String? emoji;
   final String? assetPath;
+  final String? storeProductId;
   final bool featured;
   final bool free;
 
-  /// Future App Store / Play SKU: vocab_icon_{id}
-  String get productId => 'vocab_icon_$id';
+  /// Play / App Store product ID; falls back to vocab_icon_{id} if unset.
+  String get productId => storeProductId ?? 'vocab_icon_$id';
 
   String get displayName {
     if (kind == ProfileIconKind.emoji) return emoji ?? id;
@@ -60,6 +62,7 @@ class ProfileIconCatalog {
       id: 'octopus',
       kind: ProfileIconKind.premium,
       assetPath: 'assets/icons/premium/octopus.png',
+      storeProductId: 'blueberini_octopusini_icon',
       featured: true,
     ),
   ];
