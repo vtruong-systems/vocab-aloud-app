@@ -40,6 +40,7 @@ dependencies:
   provider: ^6.1.2
   uuid: ^4.5.1
   confetti: ^0.7.0
+  audioplayers: ^6.1.0
   url_launcher: ^6.3.1
   video_player: ^2.10.0
   in_app_purchase: ^3.2.3
@@ -88,6 +89,7 @@ flutter:
   assets:
     - assets/media/sponsor_video.mp4
     - assets/icons/premium/
+    - assets/sounds/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

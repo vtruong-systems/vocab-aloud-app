@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -81,6 +83,13 @@ class _QuizScreenState extends State<QuizScreen> {
       _answered = true;
       _wasCorrect = correct;
     });
+
+    unawaited(controller.tts.speak(choice.word));
+    if (correct) {
+      unawaited(controller.sfx.playCorrect());
+    } else {
+      unawaited(controller.sfx.playIncorrect());
+    }
 
     await controller.markQuizAttempt(set.id, current.id, correct: correct);
     if (!correct) {
