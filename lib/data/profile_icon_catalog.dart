@@ -1,3 +1,5 @@
+import '../models/local_profile.dart';
+
 const presetEmojis = ['🦊', '🐶', '🐱', '🐻', '🦁', '🐸', '🐼', '🦄', '🌟', '📚'];
 
 const _emojiIds = {
@@ -94,5 +96,16 @@ class ProfileIconCatalog {
       if (entry.emoji == emoji) return entry;
     }
     return null;
+  }
+
+  static ProfileIconEntry equippedEntryFor(LocalProfile profile) {
+    final premiumId = profile.avatarPremiumId;
+    if (premiumId != null) {
+      final entry = findById(premiumId);
+      if (entry != null) return entry;
+    }
+
+    final emoji = profile.avatarEmoji ?? presetEmojis.first;
+    return findEmojiEntry(emoji) ?? _emojiIcons.first;
   }
 }

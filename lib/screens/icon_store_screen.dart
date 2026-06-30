@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/profile_icon_catalog.dart';
+import '../models/local_profile.dart';
 import '../services/purchase_service.dart';
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
@@ -161,6 +162,7 @@ class IconStoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
+    final profile = controller.activeProfile;
     final featured = ProfileIconCatalog.featuredIcons;
     final allIcons = ProfileIconCatalog.allIcons;
 
@@ -173,6 +175,11 @@ class IconStoreScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          if (profile != null)
+            _EquippedAvatarHero(
+              profile: profile,
+              entry: ProfileIconCatalog.equippedEntryFor(profile),
+            ),
           if (featured.isNotEmpty) ...[
             Text(
               'Featured',
@@ -223,6 +230,91 @@ class IconStoreScreen extends StatelessWidget {
                 onTap: () => _onIconTap(context, entry),
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EquippedAvatarHero extends StatelessWidget {
+  const _EquippedAvatarHero({
+    required this.profile,
+    required this.entry,
+  });
+
+  final LocalProfile profile;
+  final ProfileIconEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const avatarSize = 112.0;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: avatarSize + 20,
+            height: avatarSize + 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+              border: Border.all(
+                color: theme.colorScheme.primary,
+                width: 3,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: ProfileIconPreview(entry: entry, size: avatarSize * 0.9),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            profile.displayName,
+            style: theme.textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Currently equipped',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            entry.displayName,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

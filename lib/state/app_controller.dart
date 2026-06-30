@@ -15,6 +15,7 @@ import '../models/word_progress.dart';
 import '../services/purchase_service.dart';
 import '../services/app_storage_service.dart';
 import '../services/text_to_speech_service.dart';
+import '../services/sound_effects_service.dart';
 import '../utils/progress_helpers.dart';
 
 const maxProfiles = 10;
@@ -24,13 +25,16 @@ class AppController extends ChangeNotifier {
   AppController({
     required AppStorageService storage,
     required TextToSpeechService tts,
+    required SoundEffectsService sfx,
     required PurchaseService purchaseService,
   })  : _storage = storage,
         _tts = tts,
+        _sfx = sfx,
         _purchaseService = purchaseService;
 
   final AppStorageService _storage;
   final TextToSpeechService _tts;
+  final SoundEffectsService _sfx;
   final PurchaseService _purchaseService;
   final _uuid = const Uuid();
 
@@ -48,6 +52,7 @@ class AppController extends ChangeNotifier {
 
   AppSettings get settings => _state.settings;
   TextToSpeechService get tts => _tts;
+  SoundEffectsService get sfx => _sfx;
   List<String> get ownedPremiumIconIds => _state.ownedPremiumIconIds;
   bool get usesStubPurchases => _purchaseService.isStubFallback;
 

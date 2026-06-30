@@ -24,6 +24,7 @@ import 'services/create_purchase_service.dart';
 import 'services/purchase_service.dart';
 import 'services/app_storage_service.dart';
 import 'services/text_to_speech_service.dart';
+import 'services/sound_effects_service.dart';
 import 'state/app_controller.dart';
 import 'theme/app_theme.dart';
 
@@ -36,11 +37,13 @@ class VocabApp extends StatefulWidget {
 
 class _VocabAppState extends State<VocabApp> {
   late final Future<PurchaseService> _purchaseServiceFuture;
+  late final SoundEffectsService _soundEffectsService;
   PurchaseService? _purchaseService;
 
   @override
   void initState() {
     super.initState();
+    _soundEffectsService = SoundEffectsService();
     _purchaseServiceFuture = createPurchaseService();
     _purchaseServiceFuture.then((service) => _purchaseService = service);
   }
@@ -48,6 +51,7 @@ class _VocabAppState extends State<VocabApp> {
   @override
   void dispose() {
     _purchaseService?.dispose();
+    _soundEffectsService.dispose();
     super.dispose();
   }
 
@@ -72,11 +76,13 @@ class _VocabAppState extends State<VocabApp> {
           providers: [
             Provider(create: (_) => AppStorageService()),
             Provider(create: (_) => TextToSpeechService()),
+            Provider<SoundEffectsService>.value(value: _soundEffectsService),
             Provider<PurchaseService>.value(value: purchaseService),
             ChangeNotifierProvider(
               create: (context) => AppController(
                 storage: context.read<AppStorageService>(),
                 tts: context.read<TextToSpeechService>(),
+                sfx: context.read<SoundEffectsService>(),
                 purchaseService: context.read<PurchaseService>(),
               ),
             ),
