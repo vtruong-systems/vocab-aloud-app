@@ -4,5 +4,5 @@
 # school,Lincoln Elementary
 # description,Weekly vocabulary for room 12
 # theme,Science & Nature
-Word,Category,Meaning,Related Words,Grade,Difficulty
-Gather,Instructional Language,To bring things together,collect assemble,1,easy
+Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence
+Gather,Instructional Language,To bring things together,collect assemble,1,easy,We gather the blocks into one pile.

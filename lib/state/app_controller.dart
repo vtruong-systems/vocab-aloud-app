@@ -17,6 +17,7 @@ import '../services/app_storage_service.dart';
 import '../services/text_to_speech_service.dart';
 import '../services/sound_effects_service.dart';
 import '../utils/progress_helpers.dart';
+import '../utils/vocabulary_progress_migration.dart';
 
 const maxProfiles = 10;
 const maxActivityLogEntries = 200;
@@ -27,10 +28,10 @@ class AppController extends ChangeNotifier {
     required TextToSpeechService tts,
     required SoundEffectsService sfx,
     required PurchaseService purchaseService,
-  })  : _storage = storage,
-        _tts = tts,
-        _sfx = sfx,
-        _purchaseService = purchaseService;
+  }) : _storage = storage,
+       _tts = tts,
+       _sfx = sfx,
+       _purchaseService = purchaseService;
 
   final AppStorageService _storage;
   final TextToSpeechService _tts;
@@ -64,6 +65,11 @@ class AppController extends ChangeNotifier {
 
   Future<void> load() async {
     _state = await _storage.load();
+    final migration = migrateVocabularyProgress(_state);
+    _state = migration.state;
+    if (migration.changed) {
+      await _storage.save(_state);
+    }
     await _tts.initialize();
     await _tts.applySpeechSpeed(_state.settings.speechSpeed);
     await _syncStoreEntitlements();
@@ -142,7 +148,8 @@ class AppController extends ChangeNotifier {
     final profileId = _state.activeProfileId;
     if (profileId == null) return;
 
-    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final current =
+        _state.profileProgress[profileId] ?? const ProfileProgress();
     final entry = ActivityEntry(
       id: 'activity-${_uuid.v4()}',
       completedAt: DateTime.now().toUtc(),
@@ -241,22 +248,18 @@ class AppController extends ChangeNotifier {
     if (profileId == null) return;
 
     _state = _state.copyWith(
-      profiles: _state.profiles
-          .map(
-            (profile) {
-              if (profile.id != profileId) return profile;
-              switch (entry.kind) {
-                case ProfileIconKind.premium:
-                  return profile.copyWith(avatarPremiumId: entry.id);
-                case ProfileIconKind.emoji:
-                  return profile.copyWith(
-                    avatarEmoji: entry.emoji ?? presetEmojis.first,
-                    clearAvatarPremiumId: true,
-                  );
-              }
-            },
-          )
-          .toList(),
+      profiles: _state.profiles.map((profile) {
+        if (profile.id != profileId) return profile;
+        switch (entry.kind) {
+          case ProfileIconKind.premium:
+            return profile.copyWith(avatarPremiumId: entry.id);
+          case ProfileIconKind.emoji:
+            return profile.copyWith(
+              avatarEmoji: entry.emoji ?? presetEmojis.first,
+              clearAvatarPremiumId: true,
+            );
+        }
+      }).toList(),
     );
     await _persist();
   }
@@ -287,8 +290,9 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> deleteProfile(String profileId) async {
-    final updatedProfiles =
-        _state.profiles.where((profile) => profile.id != profileId).toList();
+    final updatedProfiles = _state.profiles
+        .where((profile) => profile.id != profileId)
+        .toList();
     final updatedProgress = Map<String, ProfileProgress>.from(
       _state.profileProgress,
     )..remove(profileId);
@@ -316,17 +320,15 @@ class AppController extends ChangeNotifier {
     final profileId = _state.activeProfileId;
     if (profileId == null) return;
 
-    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final current =
+        _state.profileProgress[profileId] ?? const ProfileProgress();
     final updatedSets = Map<String, SetProgress>.from(current.sets);
     updatedSets.putIfAbsent(setId, () => const SetProgress());
 
     _state = _state.copyWith(
       profileProgress: {
         ..._state.profileProgress,
-        profileId: current.copyWith(
-          selectedSetId: setId,
-          sets: updatedSets,
-        ),
+        profileId: current.copyWith(selectedSetId: setId, sets: updatedSets),
       },
     );
     await _persist();
@@ -335,7 +337,8 @@ class AppController extends ChangeNotifier {
   Future<void> setLastMode(String setId, String mode) async {
     final profileId = _state.activeProfileId;
     if (profileId == null) return;
-    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final current =
+        _state.profileProgress[profileId] ?? const ProfileProgress();
     _state = _state.copyWith(
       profileProgress: {
         ..._state.profileProgress,
@@ -409,7 +412,8 @@ class AppController extends ChangeNotifier {
   Future<void> resetSet(String setId) async {
     final profileId = _state.activeProfileId;
     if (profileId == null) return;
-    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final current =
+        _state.profileProgress[profileId] ?? const ProfileProgress();
     final updatedSets = Map<String, SetProgress>.from(current.sets);
     updatedSets[setId] = const SetProgress();
     _state = _state.copyWith(
@@ -424,7 +428,8 @@ class AppController extends ChangeNotifier {
   Future<void> resetAllForActiveProfile() async {
     final profileId = _state.activeProfileId;
     if (profileId == null) return;
-    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final current =
+        _state.profileProgress[profileId] ?? const ProfileProgress();
     _state = _state.copyWith(
       profileProgress: {
         ..._state.profileProgress,
@@ -442,9 +447,12 @@ class AppController extends ChangeNotifier {
     final profileId = _state.activeProfileId;
     if (profileId == null) return;
 
-    final current = _state.profileProgress[profileId] ?? const ProfileProgress();
+    final current =
+        _state.profileProgress[profileId] ?? const ProfileProgress();
     final setProgress = current.sets[setId] ?? const SetProgress();
-    final wordProgress = Map<String, WordProgress>.from(setProgress.wordProgress);
+    final wordProgress = Map<String, WordProgress>.from(
+      setProgress.wordProgress,
+    );
     final existing = wordProgress[wordId] ?? WordProgress.empty(wordId);
     wordProgress[wordId] = update(existing);
 

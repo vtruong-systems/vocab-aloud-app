@@ -1,0 +1,15 @@
+# set_id,truong-school-words
+# title,Truong School Words
+# description,Common words used in the classroom and at school
+# theme,School
+Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence
+Book,Reading & Writing,Pages with words or pictures that we can read,story pages,1,easy,I read a book at school.
+Pencil,Reading & Writing,A tool used for writing or drawing,write draw,1,easy,I write my name with a pencil.
+Pen,Reading & Writing,A writing tool that uses ink,ink write,1,easy,The teacher writes with a pen.
+Read,Reading & Writing,To look at words and understand what they say,words story,1,easy,We read a story together.
+Instructions,Instructional Language,Words that tell us what to do,directions steps,1,medium,I listen to the instructions before I begin.
+Teacher,Communication & Discussion,A person who helps students learn,school helper,1,easy,My teacher helps me learn.
+Ask,Communication & Discussion,To say a question or request,question request,1,easy,I ask for help when I need it.
+Seat,Instructional Language,A place where someone sits,chair sit,1,easy,I sit in my seat.
+Class,Communication & Discussion,A group of students who learn together,students group,1,easy,Our class reads every morning.
+School,Communication & Discussion,A place where students go to learn,classroom learn,1,easy,I go to school on weekdays.

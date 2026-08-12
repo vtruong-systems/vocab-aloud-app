@@ -86,6 +86,7 @@ Below the header row `Word,Category,Meaning,...`, add one row per word.
 | **Related Words** | Optional; not shown in app today | `collect assemble` |
 | **Grade** | `Pre-K`, `K`, `1`, `2`, `3`, `4`, or `5` | `1` |
 | **Difficulty** | `easy`, `medium`, or `hard` | `easy` |
+| **Example Sentence** | Recommended; a short sentence showing the word in context | `We gather the blocks into one pile.` |
 
 **Allowed categories** (copy exactly, including capitalization):
 
@@ -105,6 +106,7 @@ Below the header row `Word,Category,Meaning,...`, add one row per word.
 ### Tips for a good file
 
 - Use **simple definitions** a child can understand.
+- Write short example sentences using familiar words.
 - Avoid commas in definitions if possible. If you need a comma, wrap the whole cell in quotes when exporting.
 - Include at least **one word** per set.
 - Double-check spelling before you submit.
@@ -118,7 +120,7 @@ Below the header row `Word,Category,Meaning,...`, add one row per word.
 Open the file in a plain text editor (Notepad, TextEdit) and confirm:
 
 - The `# set_id,...` line matches your file name (without `.csv`).
-- The word header row is present: `Word,Category,Meaning,Related Words,Grade,Difficulty`
+- The word header row is present: `Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence`
 - Your words appear below that row.
 
 ---
@@ -236,9 +238,9 @@ If GitHub feels overwhelming, you can:
 # school,Lincoln Elementary
 # description,Weekly vocabulary for room 12
 # theme,Science & Nature
-Word,Category,Meaning,Related Words,Grade,Difficulty
-Gather,Instructional Language,To bring things together,collect assemble,1,easy
-Species,Scientific Thinking,A group of similar living things that can reproduce,kind classification,4,hard
+Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence
+Gather,Instructional Language,To bring things together,collect assemble,1,easy,We gather the blocks into one pile.
+Species,Scientific Thinking,A group of similar living things that can reproduce,kind classification,4,hard,A robin is a species of bird.
 ```
 
 ---

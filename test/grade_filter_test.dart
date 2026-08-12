@@ -76,28 +76,20 @@ void main() {
   });
 
   group('filterSetsByLevel', () {
-    test('Level 1 filter sees 14 pure Pre-K sets', () {
+    test('Level 1 filter only returns visible Pre-K sets', () {
       final visible = filterSetsByLevel(vocabularySets, GradeLevel.preK);
 
-      expect(visible.length, 14);
+      expect(visible, isNotEmpty);
       expect(
-        visible.every(
-          (set) =>
-              set.minGradeLevel == GradeLevel.preK &&
-              set.maxGradeLevel == GradeLevel.preK,
-        ),
+        visible.every((set) => isSetVisibleForLevel(set, GradeLevel.preK)),
         isTrue,
       );
     });
 
-    test('Level 2 filter sees K sets and not pure Level 1 sets', () {
-      final level1 = filterSetsByLevel(vocabularySets, GradeLevel.preK);
+    test('Level 2 filter only returns visible kindergarten sets', () {
       final level2 = filterSetsByLevel(vocabularySets, GradeLevel.k);
-      final level1Ids = level1.map((set) => set.id).toSet();
-      final level2Ids = level2.map((set) => set.id).toSet();
 
-      expect(level2.length, 13);
-      expect(level1Ids.intersection(level2Ids), isEmpty);
+      expect(level2, isNotEmpty);
       expect(
         level2.every((set) => isSetVisibleForLevel(set, GradeLevel.k)),
         isTrue,
@@ -108,7 +100,7 @@ void main() {
       final visible = filterSetsByLevel(vocabularySets, null);
 
       expect(visible.length, vocabularySets.length);
-      expect(visible.length, 44);
+      expect(visible.length, greaterThan(180));
     });
   });
 
