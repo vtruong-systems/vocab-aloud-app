@@ -9,9 +9,11 @@ import 'package:vocab_aloud_app/models/word_progress.dart';
 import 'package:vocab_aloud_app/utils/grade_filter.dart';
 import 'package:vocab_aloud_app/utils/progress_helpers.dart';
 
+VocabularySet get vocabularySet1 => vocabularySets.first;
+
 void main() {
   group('computeSetStats step-based progress', () {
-    test('vocabulary set 1 total steps matches word count', () {
+    test('catalog set total steps matches word count', () {
       final expectedSteps = vocabularySet1.words.fold<int>(
         0,
         (sum, word) => sum + (word.isMultiWord ? 3 : 4),
@@ -168,11 +170,7 @@ void main() {
       };
 
       final visible = filterSetsByLevel(vocabularySets, GradeLevel.preK);
-      final count = countSetsInProgress(
-        visible,
-        progress,
-        requireTyped: false,
-      );
+      final count = countSetsInProgress(visible, progress, requireTyped: false);
 
       expect(count, 0);
     });

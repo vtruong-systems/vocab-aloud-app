@@ -1,6 +1,7 @@
 import 'dart:io';
 
-const defaultCsvPath = 'data/vocabulary/default/vocab.csv';
+const defaultCsvPath =
+    'data/vocabulary/default/spelling_words_grades_1_to_5_with_definitions.csv';
 const communityDirPath = 'data/vocabulary/community';
 const outputPath = 'lib/data/vocabulary_sets.dart';
 
@@ -115,13 +116,74 @@ List<ParsedSet> parseDefaultCsv(String content) {
   if (lines.isEmpty) {
     throw VocabularyGeneratorException('Default CSV is empty');
   }
-  if (lines.first !=
-      'Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence,Set') {
-    throw VocabularyGeneratorException(
-      'Default CSV header must include Example Sentence before Set',
-    );
+
+  if (lines.first == 'word,grade,set (week),definition,sentence') {
+    return _parseSpellingDefaultCsv(lines);
   }
 
+  if (lines.first !=
+      'Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence,Set') {
+    throw VocabularyGeneratorException('Unknown default CSV header');
+  }
+
+  return _parseLegacyDefaultCsv(lines);
+}
+
+List<ParsedSet> _parseSpellingDefaultCsv(List<String> lines) {
+  final sets = <(int, int), List<WordRow>>{};
+  for (var i = 1; i < lines.length; i++) {
+    final parts = _parseCsvLine(lines[i]);
+    if (parts.length != 5) {
+      throw VocabularyGeneratorException(
+        'Invalid spelling CSV row ${i + 1}: expected 5 columns',
+      );
+    }
+
+    final word = parts[0].trim();
+    final grade = int.tryParse(parts[1].trim());
+    final week = int.tryParse(parts[2].trim());
+    final definition = parts[3].trim();
+    final sentence = parts[4].trim();
+    if (word.isEmpty ||
+        grade == null ||
+        grade < 1 ||
+        grade > 5 ||
+        week == null ||
+        week < 1 ||
+        week > 36 ||
+        definition.isEmpty ||
+        sentence.isEmpty) {
+      throw VocabularyGeneratorException(
+        'Invalid spelling CSV row ${i + 1}: ${lines[i]}',
+      );
+    }
+
+    sets
+        .putIfAbsent((grade, week), () => [])
+        .add(
+          WordRow(
+            word: word,
+            category: 'Reading & Writing',
+            meaning: definition,
+            grade: '$grade',
+            difficulty: _difficultyForSpellingGrade(grade),
+            exampleSentence: sentence,
+          ),
+        );
+  }
+
+  final keys = sets.keys.toList()
+    ..sort((a, b) {
+      final gradeComparison = a.$1.compareTo(b.$1);
+      return gradeComparison != 0 ? gradeComparison : a.$2.compareTo(b.$2);
+    });
+  return [
+    for (final key in keys)
+      _buildSpellingDefaultSet(key.$1, key.$2, sets[key]!),
+  ];
+}
+
+List<ParsedSet> _parseLegacyDefaultCsv(List<String> lines) {
   final sets = <int, List<WordRow>>{};
   for (var i = 1; i < lines.length; i++) {
     final row = _parseDefaultRow(lines[i]);
@@ -135,6 +197,34 @@ List<ParsedSet> parseDefaultCsv(String content) {
   ];
 }
 
+List<String> _parseCsvLine(String line) {
+  final fields = <String>[];
+  final current = StringBuffer();
+  var quoted = false;
+
+  for (var i = 0; i < line.length; i++) {
+    final character = line[i];
+    if (character == '"') {
+      if (quoted && i + 1 < line.length && line[i + 1] == '"') {
+        current.write('"');
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character == ',' && !quoted) {
+      fields.add(current.toString());
+      current.clear();
+    } else {
+      current.write(character);
+    }
+  }
+  if (quoted) {
+    throw VocabularyGeneratorException('Unclosed quote in CSV row: $line');
+  }
+  fields.add(current.toString());
+  return fields;
+}
+
 ParsedSet parseCommunityCsv(
   String content, {
   required String filename,
@@ -144,6 +234,7 @@ ParsedSet parseCommunityCsv(
   final metadata = <String, String>{};
   final wordRows = <WordRow>[];
   var foundWordHeader = false;
+  var hasExampleSentenceColumn = false;
 
   for (final rawLine in lines) {
     final line = rawLine.trim();
@@ -167,6 +258,12 @@ ParsedSet parseCommunityCsv(
       foundWordHeader = true;
       continue;
     }
+    if (line ==
+        'Word,Category,Meaning,Related Words,Grade,Difficulty,Example Sentence') {
+      foundWordHeader = true;
+      hasExampleSentenceColumn = true;
+      continue;
+    }
 
     if (!foundWordHeader) {
       throw VocabularyGeneratorException(
@@ -174,7 +271,13 @@ ParsedSet parseCommunityCsv(
       );
     }
 
-    wordRows.add(_parseCommunityWordRow(line, filename));
+    wordRows.add(
+      _parseCommunityWordRow(
+        line,
+        filename,
+        hasExampleSentence: hasExampleSentenceColumn,
+      ),
+    );
   }
 
   final setId = metadata['set_id'];
@@ -257,6 +360,27 @@ ParsedSet _buildDefaultSet(int setNumber, List<WordRow> rows) {
   );
 }
 
+ParsedSet _buildSpellingDefaultSet(int grade, int week, List<WordRow> rows) {
+  final paddedWeek = week.toString().padLeft(2, '0');
+  return ParsedSet(
+    id: 'grade-$grade-spelling-week-$paddedWeek',
+    title: 'Grade $grade Spelling Week $week',
+    description: 'Grade $grade spelling words for week $week.',
+    gradeLabel: _gradeLabelForRows(rows),
+    theme: 'Grade $grade Spelling',
+    minGradeLevel: _minGradeLevelForRows(rows),
+    maxGradeLevel: _maxGradeLevelForRows(rows),
+    words: rows,
+    source: SetSource.defaultSet,
+  );
+}
+
+String _difficultyForSpellingGrade(int grade) {
+  if (grade == 1) return 'easy';
+  if (grade <= 3) return 'medium';
+  return 'hard';
+}
+
 class _DefaultRowParseResult {
   _DefaultRowParseResult({required this.wordRow, required this.setNumber});
 
@@ -292,24 +416,34 @@ _DefaultRowParseResult _parseDefaultRow(String line) {
   );
 }
 
-WordRow _parseCommunityWordRow(String line, String filename) {
-  final parts = line.split(',');
-  if (parts.length < 6) {
-    throw VocabularyGeneratorException(
-      '$filename: invalid word row (expected 6 columns): $line',
-    );
+WordRow _parseCommunityWordRow(
+  String line,
+  String filename, {
+  required bool hasExampleSentence,
+}) {
+  final parts = _parseCsvLine(line);
+  final expectedColumns = hasExampleSentence ? 7 : 6;
+  if (parts.length != expectedColumns) {
+    throw VocabularyGeneratorException('$filename: invalid word row: $line');
   }
-  final difficulty = parts[parts.length - 1].trim();
-  final grade = parts[parts.length - 2].trim();
-  final meaning = parts.sublist(2, parts.length - 2).join(',').trim();
+  final exampleSentence = hasExampleSentence ? parts[6].trim() : null;
+  final difficulty = parts[5].trim();
+  final grade = parts[4].trim();
+  final meaning = parts[2].trim();
   final category = parts[1].trim();
   final word = parts[0].trim();
+  if (hasExampleSentence && exampleSentence!.isEmpty) {
+    throw VocabularyGeneratorException(
+      '$filename: missing example sentence for "$word"',
+    );
+  }
   return WordRow(
     word: word,
     category: category,
     meaning: meaning,
     grade: grade,
     difficulty: difficulty,
+    exampleSentence: exampleSentence,
   );
 }
 
@@ -356,7 +490,19 @@ String _dartConstName(ParsedSet set) {
   if (set.source == SetSource.defaultSet && set.setNumber != null) {
     return 'vocabularySet${set.setNumber}';
   }
-  return 'communitySet_${set.id.replaceAll('-', '_')}';
+  if (set.source == SetSource.defaultSet) {
+    return _constNameForId('defaultSet', set.id);
+  }
+  return _constNameForId('communitySet', set.id);
+}
+
+String _constNameForId(String prefix, String id) {
+  final suffix = id
+      .split('-')
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join();
+  return '$prefix$suffix';
 }
 
 void _writeSetConst(StringBuffer buffer, ParsedSet set, String constName) {
