@@ -43,7 +43,7 @@ class _QuizScreenState extends State<QuizScreen> {
     final set = controller.selectedSet!;
     _session = buildQuizSession(set.words, controller.getSelectedSetProgress());
     _sessionWordCount = _session.length;
-    _loadQuestion();
+    if (_session.length >= 2) _loadQuestion();
   }
 
   void _loadQuestion() {
@@ -136,6 +136,25 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_session.length < 2) {
+      return AppScaffold(
+        title: 'Quiz',
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Quiz needs at least two words so there is a real choice.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     final controller = context.watch<AppController>();
     final tts = controller.tts;
     final current = _session[_index];
@@ -183,8 +202,10 @@ class _QuizScreenState extends State<QuizScreen> {
                   return Card(
                     color: bg,
                     child: ListTile(
-                      title: Text(choice.word,
-                          style: Theme.of(context).textTheme.titleMedium),
+                      title: Text(
+                        choice.word,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       trailing: SpeakerButton(
                         size: 40,
                         onSpeak: () => tts.speak(choice.word),
@@ -204,8 +225,10 @@ class _QuizScreenState extends State<QuizScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Text('Good try!',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Good try!',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 4),
                       Text('The correct answer is: ${current.word}'),
                       SpeakerButton(onSpeak: () => tts.speak(current.word)),

@@ -557,11 +557,31 @@ String _escapeDart(String value) =>
 const _gradeOrder = ['Pre-K', 'K', '1', '2', '3', '4', '5'];
 
 String _gradeLabelForRows(List<WordRow> rows) {
-  final grades = rows.map((r) => r.grade).toSet().toList()..sort();
-  if (grades.length == 1) {
-    return 'Level ${_displayLevelForCsvGrade(grades.first)}';
+  final grades = rows.map((r) => r.grade).toSet().toList()
+    ..sort((a, b) => _gradeOrder.indexOf(a).compareTo(_gradeOrder.indexOf(b)));
+  if (grades.length == 1) return _friendlyGrade(grades.first);
+  return '${_friendlyGrade(grades.first)}–${_friendlyGrade(grades.last)}';
+}
+
+String _friendlyGrade(String grade) {
+  switch (grade) {
+    case 'Pre-K':
+      return 'Pre-K';
+    case 'K':
+      return 'K';
+    case '1':
+      return 'Grade 1';
+    case '2':
+      return 'Grade 2';
+    case '3':
+      return 'Grade 3';
+    case '4':
+      return 'Grade 4';
+    case '5':
+      return 'Grade 5';
+    default:
+      throw VocabularyGeneratorException('Unknown grade: $grade');
   }
-  return 'Mixed Levels';
 }
 
 String _themeForRows(List<WordRow> rows) {
@@ -615,14 +635,6 @@ String _minGradeLevelForRows(List<WordRow> rows) {
     if (index < minIndex) minIndex = index;
   }
   return _gradeLevelForCsv(_gradeOrder[minIndex]);
-}
-
-int _displayLevelForCsvGrade(String grade) {
-  final index = _gradeOrder.indexOf(grade);
-  if (index == -1) {
-    throw VocabularyGeneratorException('Unknown grade: $grade');
-  }
-  return index + 1;
 }
 
 String _difficultyFromCsv(String difficulty) {

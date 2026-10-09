@@ -39,6 +39,17 @@ class _TypeItScreenState extends State<TypeItScreen> {
     final set = app.selectedSet!;
     _session = buildTypeSession(set.words, app.getSelectedSetProgress());
     _sessionWordCount = _session.length;
+    if (_session.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _speakPrompt());
+    }
+  }
+
+  void _speakPrompt() {
+    if (!mounted || _session.isEmpty) return;
+    context.read<AppController>().tts.speakSequence([
+      _session[_index].word,
+      'Type it.',
+    ]);
   }
 
   @override
@@ -95,6 +106,7 @@ class _TypeItScreenState extends State<TypeItScreen> {
         _wasCorrect = false;
         _advancing = false;
       });
+      _speakPrompt();
       return;
     }
 
@@ -114,7 +126,18 @@ class _TypeItScreenState extends State<TypeItScreen> {
   Widget build(BuildContext context) {
     final app = context.watch<AppController>();
     final tts = app.tts;
-    final prompt = 'Type the word that means:\n"${_current.definition}"';
+    if (_session.isEmpty) {
+      return AppScaffold(
+        title: 'Type It',
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        body: const Center(child: Text('No words to type in this set.')),
+      );
+    }
+
+    final prompt = 'Type the word you hear.';
     final inputsLocked = _advancing || _wasCorrect;
 
     return ConfettiCelebration(
@@ -135,7 +158,11 @@ class _TypeItScreenState extends State<TypeItScreen> {
                 child: Column(
                   children: [
                     Text(prompt, style: Theme.of(context).textTheme.bodyLarge),
-                    SpeakerButton(onSpeak: () => tts.speak(prompt)),
+                    SpeakerButton(onSpeak: () => tts.speak(_current.word)),
+                    TextButton(
+                      onPressed: () => tts.speak(_current.definition),
+                      child: const Text('Hear the meaning'),
+                    ),
                   ],
                 ),
               ),
@@ -156,8 +183,10 @@ class _TypeItScreenState extends State<TypeItScreen> {
             ],
             if (_showAnswer) ...[
               const SizedBox(height: 8),
-              Text('Answer: ${_current.word}',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Answer: ${_current.word}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ],
             if (_feedback != null) ...[
               const SizedBox(height: 12),

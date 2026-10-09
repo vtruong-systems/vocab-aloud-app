@@ -49,9 +49,9 @@ class SettingsScreen extends StatelessWidget {
     final message = restoredCount > 0
         ? 'Restored $restoredCount premium icon(s).'
         : 'No purchases found to restore.';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -92,14 +92,15 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 SwitchListTile(
-                  title: const Text('Auto-read word on Learn screen'),
+                  title: const Text('Read word, meaning, and sentence'),
+                  subtitle: const Text('On the Learn screen'),
                   value: settings.autoReadLearnWord,
                   onChanged: (value) => controller.updateSettings(
                     settings.copyWith(autoReadLearnWord: value),
                   ),
                 ),
                 SwitchListTile(
-                  title: const Text('Auto-read definition in quiz'),
+                  title: const Text('Read the meaning in Quiz'),
                   value: settings.autoReadQuizDefinition,
                   onChanged: (value) => controller.updateSettings(
                     settings.copyWith(autoReadQuizDefinition: value),
@@ -122,7 +123,8 @@ class SettingsScreen extends StatelessWidget {
                 ListTile(
                   title: const Text('Manage Profiles'),
                   subtitle: Text(
-                    controller.activeProfile?.displayName ?? 'No active profile',
+                    controller.activeProfile?.displayName ??
+                        'No active profile',
                   ),
                 ),
                 ListTile(
@@ -174,7 +176,9 @@ class SettingsScreen extends StatelessWidget {
           const Card(
             child: ListTile(
               title: Text('About'),
-              subtitle: Text('$appDisplayName v1.0\nLocal-only kids vocab app.'),
+              subtitle: Text(
+                '$appDisplayName v1.0\nLocal-only kids vocab app.',
+              ),
             ),
           ),
           const CreditsFooterLink(),

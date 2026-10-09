@@ -37,9 +37,21 @@ class _SpellItScreenState extends State<SpellItScreen> {
     super.initState();
     final controller = context.read<AppController>();
     final set = controller.selectedSet!;
-    _session = buildSpellingSession(set.words, controller.getSelectedSetProgress());
+    _session = buildSpellingSession(
+      set.words,
+      controller.getSelectedSetProgress(),
+    );
     _sessionWordCount = _session.length;
-    _setupWord();
+    if (_session.isNotEmpty) {
+      _setupWord();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _speakPrompt());
+    }
+  }
+
+  void _speakPrompt() {
+    if (!mounted || _session.isEmpty) return;
+    final word = _session[_index];
+    context.read<AppController>().tts.speakSequence([word.word, 'Spell it.']);
   }
 
   void _setupWord() {
@@ -163,6 +175,7 @@ class _SpellItScreenState extends State<SpellItScreen> {
         _index++;
         _setupWord();
       });
+      _speakPrompt();
       return;
     }
 
@@ -196,8 +209,7 @@ class _SpellItScreenState extends State<SpellItScreen> {
     final controller = context.watch<AppController>();
     final tts = controller.tts;
     final word = _session[_index];
-    final prompt =
-        'Spell the word that means:\n"${word.definition}"';
+    const prompt = 'Spell the word you hear.';
     final inputsLocked = _advancing || _wasCorrect == true;
 
     return ConfettiCelebration(
@@ -218,7 +230,11 @@ class _SpellItScreenState extends State<SpellItScreen> {
                 child: Column(
                   children: [
                     Text(prompt, style: Theme.of(context).textTheme.bodyLarge),
-                    SpeakerButton(onSpeak: () => tts.speak(prompt)),
+                    SpeakerButton(onSpeak: () => tts.speak(word.word)),
+                    TextButton(
+                      onPressed: () => tts.speak(word.definition),
+                      child: const Text('Hear the meaning'),
+                    ),
                   ],
                 ),
               ),
@@ -286,8 +302,9 @@ class _SpellItScreenState extends State<SpellItScreen> {
                         onAcceptWithDetails: inputsLocked
                             ? null
                             : (details) {
-                                final slot =
-                                    _slots.indexWhere((s) => s == null);
+                                final slot = _slots.indexWhere(
+                                  (s) => s == null,
+                                );
                                 if (slot != -1) _placeTile(details.data, slot);
                               },
                         builder: (context, candidate, rejected) =>

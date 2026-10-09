@@ -21,4 +21,30 @@ class VocabularyWord {
   final GradeLevel gradeLevel;
 
   bool get isMultiWord => word.contains(' ');
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'word': word,
+    'definition': definition,
+    'exampleSentence': exampleSentence,
+    'partOfSpeech': partOfSpeech,
+    'difficulty': difficulty.name,
+    'gradeLevel': gradeLevel.toJson(),
+  };
+
+  factory VocabularyWord.fromJson(Map<String, dynamic> json) {
+    return VocabularyWord(
+      id: json['id'] as String? ?? '',
+      word: json['word'] as String? ?? '',
+      definition: json['definition'] as String? ?? '',
+      exampleSentence: json['exampleSentence'] as String? ?? '',
+      partOfSpeech: json['partOfSpeech'] as String? ?? '',
+      difficulty: WordDifficulty.values.firstWhere(
+        (value) => value.name == json['difficulty'],
+        orElse: () => WordDifficulty.medium,
+      ),
+      gradeLevel:
+          GradeLevel.fromJson(json['gradeLevel'] as String?) ?? GradeLevel.g1,
+    );
+  }
 }

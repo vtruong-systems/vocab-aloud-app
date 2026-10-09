@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,7 +21,6 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
   late List<VocabularyWord> _session;
   late AppController _controller;
   int _index = 0;
-  Timer? _reviewTimer;
   bool _markedCurrent = false;
 
   @override
@@ -44,21 +41,12 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
       );
       if (startIndex >= 0) _index = startIndex;
     }
-    _scheduleReviewMark();
   }
 
   @override
   void dispose() {
-    _reviewTimer?.cancel();
-    _markReviewed();
     _controller.tts.stop();
     super.dispose();
-  }
-
-  void _scheduleReviewMark() {
-    _reviewTimer?.cancel();
-    _markedCurrent = false;
-    _reviewTimer = Timer(const Duration(seconds: 1), _markReviewed);
   }
 
   Future<void> _markReviewed() async {
@@ -71,17 +59,25 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
   }
 
   void _goTo(int newIndex) {
-    setState(() => _index = newIndex);
-    _scheduleReviewMark();
+    setState(() {
+      _index = newIndex;
+      _markedCurrent = false;
+    });
     _maybeAutoRead();
   }
 
   void _maybeAutoRead() {
+    if (_session.isEmpty) return;
     final settings = context.read<AppController>().settings;
     if (!settings.autoReadLearnWord) return;
     final word = _session[_index];
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<AppController>().tts.speak(word.word);
+      if (!mounted) return;
+      context.read<AppController>().tts.speakSequence([
+        word.word,
+        word.definition,
+        word.exampleSentence,
+      ]);
     });
   }
 
@@ -118,10 +114,7 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
       subtitle: '${_index + 1} / ${_session.length}',
       leading: IconButton(
         icon: const Icon(Icons.arrow_back),
-        onPressed: () async {
-          await _markReviewed();
-          if (context.mounted) Navigator.pop(context);
-        },
+        onPressed: () => Navigator.pop(context),
       ),
       body: Column(
         children: [
@@ -139,13 +132,6 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.headlineLarge,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            word.partOfSpeech,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.black54,
-                                ),
-                          ),
                           const SizedBox(height: 12),
                           SpeakerButton(onSpeak: () => tts.speak(word.word)),
                         ],
@@ -158,8 +144,10 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          Text(word.definition,
-                              style: Theme.of(context).textTheme.bodyLarge),
+                          Text(
+                            word.definition,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                           const SizedBox(height: 12),
                           SpeakerButton(
                             onSpeak: () => tts.speak(word.definition),
@@ -174,8 +162,10 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
-                          Text(word.exampleSentence,
-                              style: Theme.of(context).textTheme.bodyLarge),
+                          Text(
+                            word.exampleSentence,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
                           const SizedBox(height: 12),
                           SpeakerButton(
                             onSpeak: () => tts.speak(word.exampleSentence),
@@ -200,9 +190,7 @@ class _LearnWordsScreenState extends State<LearnWordsScreen> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: _next,
-                  child: Text(
-                    _index < _session.length - 1 ? 'Next' : 'Done',
-                  ),
+                  child: Text(_index < _session.length - 1 ? 'Next' : 'Done'),
                 ),
               ),
             ],

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/vocabulary_sets.dart';
 import '../navigation/routes.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/progress_helpers.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/profile_avatar.dart';
+
 class ProfileSelectionScreen extends StatelessWidget {
   const ProfileSelectionScreen({super.key});
 
@@ -30,11 +30,11 @@ class ProfileSelectionScreen extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 1.55,
-                    ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1.55,
+                        ),
                     itemCount: controller.profiles.length,
                     itemBuilder: (context, index) {
                       final profile = controller.profiles[index];
@@ -43,13 +43,14 @@ class ProfileSelectionScreen extends StatelessWidget {
                       final setsInProgress = progress == null
                           ? 0
                           : countSetsInProgress(
-                              vocabularySets,
+                              controller.catalogSets,
                               progress.sets.map(
                                 (key, value) =>
                                     MapEntry(key, value.wordProgress),
                               ),
                               requireTyped: controller
-                                  .settings.requireTypeItForCompletion,
+                                  .settings
+                                  .requireTypeItForCompletion,
                             );
 
                       return Card(
@@ -79,16 +80,14 @@ class ProfileSelectionScreen extends StatelessWidget {
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style:
-                                      Theme.of(context).textTheme.titleSmall,
+                                  style: Theme.of(context).textTheme.titleSmall,
                                 ),
                                 Text(
                                   '$setsInProgress sets in progress',
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),

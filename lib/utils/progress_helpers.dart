@@ -14,6 +14,7 @@ class SetStats {
     required this.totalSteps,
     required this.quizAttempts,
     required this.quizCorrectCount,
+    required this.spellableCount,
   });
 
   final int totalWords;
@@ -26,6 +27,7 @@ class SetStats {
   final int totalSteps;
   final int quizAttempts;
   final int quizCorrectCount;
+  final int spellableCount;
 
   double get completionPercent =>
       totalSteps == 0 ? 0 : completedSteps / totalSteps;
@@ -42,24 +44,27 @@ class SetStats {
   }
 }
 
-int totalStepsForWord(VocabularyWord word) => word.isMultiWord ? 3 : 4;
+/// Vocabulary steps only. Spelling is a separate track so a child can
+/// learn meanings without writing the word.
+int totalStepsForWord(VocabularyWord word, {bool requireTyped = false}) {
+  return requireTyped ? 3 : 2;
+}
 
-int completedStepsForWord(WordProgress progress, VocabularyWord word) {
+int completedStepsForWord(
+  WordProgress progress,
+  VocabularyWord word, {
+  bool requireTyped = false,
+}) {
   var completed = 0;
   if (progress.reviewed) completed++;
   if (progress.quizCorrect) completed++;
-  if (progress.typedCompleted) completed++;
-  if (!word.isMultiWord && progress.spellingCompleted) completed++;
+  if (requireTyped && progress.typedCompleted) completed++;
   return completed;
 }
 
-bool isWordComplete(
-  WordProgress progress, {
-  required bool requireTyped,
-}) {
+bool isWordComplete(WordProgress progress, {required bool requireTyped}) {
   return progress.reviewed &&
       progress.quizCorrect &&
-      progress.spellingCompleted &&
       (!requireTyped || progress.typedCompleted);
 }
 
@@ -91,13 +96,19 @@ SetStats computeSetStats(
   var totalSteps = 0;
   var quizAttempts = 0;
   var quizCorrectCount = 0;
+  var spellable = 0;
 
   for (final word in set.words) {
     final progress = getWordProgress(progressMap, word.id);
-    totalSteps += totalStepsForWord(word);
-    completedSteps += completedStepsForWord(progress, word);
+    totalSteps += totalStepsForWord(word, requireTyped: requireTyped);
+    completedSteps += completedStepsForWord(
+      progress,
+      word,
+      requireTyped: requireTyped,
+    );
     if (progress.reviewed) reviewed++;
     if (progress.quizCorrect) quiz++;
+    if (!word.isMultiWord) spellable++;
     if (progress.spellingCompleted) spelling++;
     if (progress.typedCompleted) typed++;
     if (isWordComplete(progress, requireTyped: requireTyped)) mastered++;
@@ -116,6 +127,7 @@ SetStats computeSetStats(
     totalSteps: totalSteps,
     quizAttempts: quizAttempts,
     quizCorrectCount: quizCorrectCount,
+    spellableCount: spellable,
   );
 }
 

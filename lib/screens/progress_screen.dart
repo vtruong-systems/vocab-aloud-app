@@ -106,7 +106,7 @@ class ProgressScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Words Mastered: ${stats.masteredCount} / ${stats.totalWords}',
+                    'Vocabulary: ${stats.masteredCount} / ${stats.totalWords}',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
@@ -114,7 +114,9 @@ class ProgressScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text('Reviewed: ${stats.reviewedCount} / ${stats.totalWords}'),
                   Text('Quiz passed: ${stats.quizCount} / ${stats.totalWords}'),
-                  Text('Spelling done: ${stats.spellingCount} / ${stats.totalWords}'),
+                  Text(
+                    'Spelling done: ${stats.spellingCount} / ${stats.spellableCount}',
+                  ),
                   Text('Typed: ${stats.typedCount} / ${stats.totalWords}'),
                   if (stats.quizAccuracyPercent != null)
                     Padding(
@@ -131,14 +133,16 @@ class ProgressScreen extends StatelessWidget {
           const SizedBox(height: 12),
           ...set.words.map((word) {
             final progress = getWordProgress(progressMap, word.id);
-            final complete =
-                isWordComplete(progress, requireTyped: requireTyped);
+            final complete = isWordComplete(
+              progress,
+              requireTyped: requireTyped,
+            );
             final partial = isWordPartiallyComplete(progress);
             final icon = complete
                 ? Icons.check_circle
                 : partial
-                    ? Icons.timelapse
-                    : Icons.circle_outlined;
+                ? Icons.timelapse
+                : Icons.circle_outlined;
             return Card(
               child: ListTile(
                 leading: Icon(icon),

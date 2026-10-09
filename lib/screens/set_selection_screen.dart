@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/vocabulary_sets.dart';
 import '../models/grade_level.dart';
 import '../models/profile_progress.dart';
 import '../models/vocabulary_set.dart';
@@ -28,6 +27,16 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
   SetLevelSort _sort = SetLevelSort.setNumber;
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _appliedProfileGrade = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appliedProfileGrade) return;
+    _appliedProfileGrade = true;
+    final grade = context.read<AppController>().activeProfile?.maxGradeLevel;
+    if (grade != null) _levelFilter = grade;
+  }
 
   @override
   void dispose() {
@@ -46,9 +55,9 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
     final controller = context.read<AppController>();
     final set = controller.selectedSet;
     if (set == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick a word set first.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Pick a word set first.')));
       return;
     }
     if (!context.mounted) return;
@@ -74,7 +83,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
                 },
               ),
               ListTile(
-                title: const Text('Level (low to high)'),
+                title: const Text('Grade (low to high)'),
                 trailing: _sort == SetLevelSort.levelAsc
                     ? const Icon(Icons.check)
                     : null,
@@ -84,7 +93,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
                 },
               ),
               ListTile(
-                title: const Text('Level (high to low)'),
+                title: const Text('Grade (high to low)'),
                 trailing: _sort == SetLevelSort.levelDesc
                     ? const Icon(Icons.check)
                     : null,
@@ -100,9 +109,9 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
     );
   }
 
-  List<VocabularySet> _visibleSets() {
+  List<VocabularySet> _visibleSets(AppController controller) {
     final filtered = filterAndSortSets(
-      vocabularySets,
+      controller.catalogSets,
       selectedLevel: _levelFilter,
       sort: _sort,
     );
@@ -115,8 +124,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
     ProfileProgress? profileProgress,
     VocabularySet set,
   ) {
-    final setProgress =
-        profileProgress?.sets[set.id]?.wordProgress ?? {};
+    final setProgress = profileProgress?.sets[set.id]?.wordProgress ?? {};
     final stats = computeSetStats(
       set,
       setProgress,
@@ -134,9 +142,9 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
       padding: const EdgeInsets.only(top: 4, bottom: 2),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.black54,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(color: Colors.black54),
       ),
     );
   }
@@ -152,8 +160,8 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
       final message = hasSearch
           ? 'No word sets match your search.'
           : _levelFilter == null
-              ? 'No word sets available.'
-              : 'No word sets include ${_levelFilter!.label}.';
+          ? 'No word sets available.'
+          : 'No word sets include ${_levelFilter!.label}.';
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -166,8 +174,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
       );
     }
 
-    final showSections = _searchQuery.trim().isEmpty &&
-        hasCommunitySets(visibleSets);
+    final showSections = _searchQuery.trim().isEmpty;
 
     if (!showSections) {
       return ListView.separated(
@@ -186,20 +193,38 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
 
     final defaults = defaultSets(visibleSets);
     final community = communitySets(visibleSets);
+    final onDevice = deviceSets(visibleSets);
+    final grades = defaults.map((set) => set.maxGradeLevel).toSet().toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
 
     return ListView(
       children: [
-        if (defaults.isNotEmpty) ...[
-          _buildSectionHeader(context, 'Default Sets'),
+        if (onDevice.isNotEmpty) ...[
+          _buildSectionHeader(context, 'On this device'),
           const SizedBox(height: 8),
-          for (var i = 0; i < defaults.length; i++) ...[
+          for (var i = 0; i < onDevice.length; i++) ...[
             if (i > 0) const SizedBox(height: 10),
-            _buildSetCard(context, controller, profileProgress, defaults[i]),
+            _buildSetCard(context, controller, profileProgress, onDevice[i]),
           ],
           const SizedBox(height: 16),
         ],
+        if (defaults.isNotEmpty) ...[
+          _buildSectionHeader(context, 'Spelling lists'),
+          for (final grade in grades) ...[
+            const SizedBox(height: 8),
+            _buildSectionHeader(context, grade.label),
+            const SizedBox(height: 8),
+            for (final set in defaults.where(
+              (item) => item.maxGradeLevel == grade,
+            )) ...[
+              _buildSetCard(context, controller, profileProgress, set),
+              const SizedBox(height: 10),
+            ],
+          ],
+          const SizedBox(height: 6),
+        ],
         if (community.isNotEmpty) ...[
-          _buildSectionHeader(context, 'Teacher Sets'),
+          _buildSectionHeader(context, 'Shared lists'),
           const SizedBox(height: 8),
           for (var i = 0; i < community.length; i++) ...[
             if (i > 0) const SizedBox(height: 10),
@@ -214,9 +239,10 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
     final profileId = controller.state.activeProfileId;
-    final profileProgress =
-        profileId == null ? null : controller.state.profileProgress[profileId];
-    final visibleSets = _visibleSets();
+    final profileProgress = profileId == null
+        ? null
+        : controller.state.profileProgress[profileId];
+    final visibleSets = _visibleSets(controller);
 
     return AppScaffold(
       leading: const HomeIconButton(),
@@ -225,7 +251,9 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ElevatedButton(
-            onPressed: visibleSets.isEmpty ? null : () => _continueRecent(context),
+            onPressed: visibleSets.isEmpty
+                ? null
+                : () => _continueRecent(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.quizGreen,
               foregroundColor: Colors.white,
@@ -236,6 +264,13 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
               elevation: 2,
             ),
             child: const Text('Resume'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.createDeviceSet),
+            icon: const Icon(Icons.add),
+            label: const Text('Add a list on this device'),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -262,10 +297,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Text(
-                'Level',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              Text('Grade', style: Theme.of(context).textTheme.titleSmall),
               const Spacer(),
               TextButton.icon(
                 onPressed: () => _showSortMenu(context),
@@ -292,7 +324,7 @@ class _SetSelectionScreenState extends State<SetSelectionScreen> {
                 }
                 final level = GradeLevel.values[index - 1];
                 return FilterChip(
-                  label: Text(level.label),
+                  label: Text(level.shortLabel),
                   selected: _levelFilter == level,
                   onSelected: (_) => setState(() => _levelFilter = level),
                 );

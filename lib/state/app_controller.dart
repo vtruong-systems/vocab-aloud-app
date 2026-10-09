@@ -16,8 +16,12 @@ import '../services/purchase_service.dart';
 import '../services/app_storage_service.dart';
 import '../services/text_to_speech_service.dart';
 import '../services/sound_effects_service.dart';
+import '../utils/learner_words.dart';
 import '../utils/progress_helpers.dart';
 import '../utils/vocabulary_progress_migration.dart';
+import '../models/grade_level.dart';
+import '../models/vocabulary_word.dart';
+import '../models/word_difficulty.dart';
 
 const maxProfiles = 10;
 const maxActivityLogEntries = 200;
@@ -67,7 +71,18 @@ class AppController extends ChangeNotifier {
     _state = await _storage.load();
     final migration = migrateVocabularyProgress(_state);
     _state = migration.state;
-    if (migration.changed) {
+    var changed = migration.changed;
+    if (!_state.settings.heardPracticeDefault) {
+      _state = _state.copyWith(
+        settings: _state.settings.copyWith(
+          autoReadLearnWord: true,
+          autoReadQuizDefinition: true,
+          heardPracticeDefault: true,
+        ),
+      );
+      changed = true;
+    }
+    if (changed) {
       await _storage.save(_state);
     }
     await _tts.initialize();
@@ -104,16 +119,23 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<VocabularySet> get catalogSets => [
+    ...vocabularySets,
+    ..._state.deviceSets,
+  ];
+
   VocabularySet? getSetById(String? setId) {
     if (setId == null) return null;
-    for (final set in vocabularySets) {
+    for (final set in catalogSets) {
       if (set.id == setId) return set;
     }
     return null;
   }
 
   VocabularySet? get selectedSet {
-    return getSetById(_activeProgress?.selectedSetId);
+    final set = getSetById(_activeProgress?.selectedSetId);
+    if (set == null) return null;
+    return setForLearner(set, activeProfile?.maxGradeLevel);
   }
 
   Map<String, WordProgress> getSelectedSetProgress() {
@@ -177,6 +199,7 @@ class AppController extends ChangeNotifier {
   Future<void> createProfile({
     required String displayName,
     String? avatarEmoji,
+    GradeLevel? maxGradeLevel,
   }) async {
     if (_state.profiles.length >= maxProfiles) return;
     final profile = LocalProfile(
@@ -184,6 +207,7 @@ class AppController extends ChangeNotifier {
       displayName: displayName.trim(),
       createdAt: DateTime.now().toUtc(),
       avatarEmoji: avatarEmoji ?? presetEmojis.first,
+      maxGradeLevel: maxGradeLevel,
     );
     _state = _state.copyWith(
       profiles: [..._state.profiles, profile],
@@ -205,6 +229,67 @@ class AppController extends ChangeNotifier {
                 : profile,
           )
           .toList(),
+    );
+    await _persist();
+  }
+
+  Future<void> updateProfileGrade(String profileId, GradeLevel? grade) async {
+    _state = _state.copyWith(
+      profiles: _state.profiles
+          .map(
+            (profile) => profile.id == profileId
+                ? (grade == null
+                      ? profile.copyWith(clearMaxGradeLevel: true)
+                      : profile.copyWith(maxGradeLevel: grade))
+                : profile,
+          )
+          .toList(),
+    );
+    await _persist();
+  }
+
+  Future<void> addDeviceSet({
+    required String title,
+    required GradeLevel grade,
+    required List<({String word, String definition, String exampleSentence})>
+    words,
+  }) async {
+    final setId = 'device-${_uuid.v4()}';
+    final vocabularyWords = <VocabularyWord>[
+      for (final entry in words)
+        if (entry.word.trim().isNotEmpty && entry.definition.trim().isNotEmpty)
+          VocabularyWord(
+            id: '$setId-${_uuid.v4()}',
+            word: entry.word.trim(),
+            definition: entry.definition.trim(),
+            exampleSentence: entry.exampleSentence.trim().isEmpty
+                ? 'We can use the word ${entry.word.trim()}.'
+                : entry.exampleSentence.trim(),
+            partOfSpeech: '',
+            difficulty: WordDifficulty.medium,
+            gradeLevel: grade,
+          ),
+    ];
+    if (vocabularyWords.isEmpty) return;
+
+    final set = VocabularySet(
+      id: setId,
+      title: title.trim(),
+      description: 'A list saved on this device.',
+      gradeLabel: grade.label,
+      theme: 'On this device',
+      minGradeLevel: grade,
+      maxGradeLevel: grade,
+      words: vocabularyWords,
+      source: VocabularySetSource.device,
+    );
+    _state = _state.copyWith(deviceSets: [..._state.deviceSets, set]);
+    await _persist();
+  }
+
+  Future<void> deleteDeviceSet(String setId) async {
+    _state = _state.copyWith(
+      deviceSets: _state.deviceSets.where((set) => set.id != setId).toList(),
     );
     await _persist();
   }

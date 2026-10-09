@@ -12,6 +12,7 @@ class AppRoutes {
   static const progress = '/progress';
   static const activity = '/activity';
   static const customLessons = '/custom-lessons';
+  static const createDeviceSet = '/device-set';
   static const settings = '/settings';
   static const credits = '/credits';
   static const correctAnswer = '/correct-answer';

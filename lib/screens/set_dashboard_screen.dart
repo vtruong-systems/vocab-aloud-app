@@ -14,24 +14,24 @@ import '../widgets/progress_bar_widget.dart';
 class SetDashboardScreen extends StatelessWidget {
   const SetDashboardScreen({super.key});
 
-  String? _nextModeHint(AppController controller) {
+  String? _hintFor(AppController controller, String mode) {
     final set = controller.selectedSet;
     if (set == null) return null;
     final progress = controller.getSelectedSetProgress();
     final hasUnreviewed = set.words.any(
       (word) => !getWordProgress(progress, word.id).reviewed,
     );
-    if (hasUnreviewed) return 'Try this next';
+    if (hasUnreviewed) return mode == 'learn' ? 'Try this next' : null;
     final hasQuiz = set.words.any(
       (word) => !getWordProgress(progress, word.id).quizCorrect,
     );
-    if (hasQuiz) return 'Try this next';
+    if (hasQuiz) return mode == 'quiz' ? 'Try this next' : null;
     final hasSpelling = set.words.any(
       (word) =>
           !word.isMultiWord &&
           !getWordProgress(progress, word.id).spellingCompleted,
     );
-    if (hasSpelling) return 'Try this next';
+    if (hasSpelling) return mode == 'spell' ? 'Try this next' : null;
     return null;
   }
 
@@ -41,7 +41,6 @@ class SetDashboardScreen extends StatelessWidget {
     final profile = controller.activeProfile;
     final set = controller.selectedSet;
     final stats = controller.getSelectedSetStats();
-    final hint = _nextModeHint(controller);
 
     if (set == null || profile == null || stats == null) {
       return AppScaffold(
@@ -61,8 +60,7 @@ class SetDashboardScreen extends StatelessWidget {
         onPressed: () => Navigator.pop(context),
       ),
       actions: const [ProfileAppBarActions()],
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: ListView(
         children: [
           Card(
             child: Padding(
@@ -71,7 +69,7 @@ class SetDashboardScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${stats.masteredCount} / ${stats.totalWords} words mastered',
+                    'Vocabulary: ${stats.masteredCount} / ${stats.totalWords}',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
@@ -79,17 +77,28 @@ class SetDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text('Reviewed: ${stats.reviewedCount} / ${stats.totalWords}'),
                   Text('Quiz: ${stats.quizCount} / ${stats.totalWords}'),
-                  Text('Spelling: ${stats.spellingCount} / ${stats.totalWords}'),
+                  Text(
+                    'Spelling: ${stats.spellingCount} / ${stats.spellableCount}',
+                  ),
                   Text('Typed: ${stats.typedCount} / ${stats.totalWords}'),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          Text('Vocabulary', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Hear the meaning. Reading the word is optional.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
           PracticeModeButton(
             label: 'Learn Words',
+            subtitle: 'Hear the word and its meaning',
             color: AppColors.learnBlue,
-            hint: hint,
+            hint: _hintFor(controller, 'learn'),
             onTap: () {
               controller.setLastMode(set.id, 'learn');
               Navigator.pushNamed(context, AppRoutes.learnWords);
@@ -98,18 +107,38 @@ class SetDashboardScreen extends StatelessWidget {
           const SizedBox(height: 10),
           PracticeModeButton(
             label: 'Quiz',
-            subtitle: 'Multiple Choice',
+            subtitle: set.words.length < 2
+                ? 'Needs at least two words'
+                : 'Hear the meaning, pick the word',
             color: AppColors.quizGreen,
+            hint: _hintFor(controller, 'quiz'),
             onTap: () {
+              if (set.words.length < 2) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Quiz needs at least two words.'),
+                  ),
+                );
+                return;
+              }
               controller.setLastMode(set.id, 'quiz');
               Navigator.pushNamed(context, AppRoutes.quiz);
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+          Text('Spelling', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Hear the word, then spell it.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
           PracticeModeButton(
             label: 'Spell It',
-            subtitle: 'Drag & Drop',
+            subtitle: 'Letter tiles',
             color: AppColors.spellPurple,
+            hint: _hintFor(controller, 'spell'),
             onTap: () {
               controller.setLastMode(set.id, 'spell');
               Navigator.pushNamed(context, AppRoutes.spellIt);
@@ -118,7 +147,7 @@ class SetDashboardScreen extends StatelessWidget {
           const SizedBox(height: 10),
           PracticeModeButton(
             label: 'Type It',
-            subtitle: 'Write Answer',
+            subtitle: 'Type the word you hear',
             color: AppColors.typeOrange,
             onTap: () {
               controller.setLastMode(set.id, 'type');
@@ -145,6 +174,36 @@ class SetDashboardScreen extends StatelessWidget {
               ),
             ],
           ),
+          if (set.isDevice) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete this list?'),
+                    content: const Text(
+                      'This removes the list from this device. Progress for it is kept until you reset the profile.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true || !context.mounted) return;
+                await controller.deleteDeviceSet(set.id);
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Delete this list'),
+            ),
+          ],
         ],
       ),
     );

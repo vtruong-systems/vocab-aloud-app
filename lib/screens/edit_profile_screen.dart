@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/grade_level.dart';
 import '../state/app_controller.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/grade_level_picker.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/profile_emoji_picker.dart';
 
@@ -85,6 +87,47 @@ class EditProfileScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _setGrade(
+    BuildContext context,
+    AppController controller,
+    String profileId,
+    GradeLevel? current,
+  ) async {
+    var selected = current;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Grade'),
+              content: GradeLevelPicker(
+                includeAll: true,
+                selected: selected,
+                onSelected: (grade) {
+                  setDialogState(() => selected = grade);
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (saved != true || !context.mounted) return;
+    await controller.updateProfileGrade(profileId, selected);
+  }
+
   Future<void> _deleteProfile(
     BuildContext context,
     AppController controller,
@@ -137,6 +180,7 @@ class EditProfileScreen extends StatelessWidget {
             child: ListTile(
               leading: ProfileAvatar(profile: profile, size: 28),
               title: Text(profile.displayName),
+              subtitle: Text(profile.maxGradeLevel?.label ?? 'All grades'),
               trailing: PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (value == 'rename') {
@@ -145,6 +189,13 @@ class EditProfileScreen extends StatelessWidget {
                       controller,
                       profile.id,
                       profile.displayName,
+                    );
+                  } else if (value == 'grade') {
+                    await _setGrade(
+                      context,
+                      controller,
+                      profile.id,
+                      profile.maxGradeLevel,
                     );
                   } else if (value == 'change_icon') {
                     await _changeIcon(
@@ -164,7 +215,11 @@ class EditProfileScreen extends StatelessWidget {
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'rename', child: Text('Rename')),
-                  PopupMenuItem(value: 'change_icon', child: Text('Change icon')),
+                  PopupMenuItem(value: 'grade', child: Text('Set grade')),
+                  PopupMenuItem(
+                    value: 'change_icon',
+                    child: Text('Change icon'),
+                  ),
                   PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),

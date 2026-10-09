@@ -1,11 +1,7 @@
 import '../models/grade_level.dart';
 import '../models/vocabulary_set.dart';
 
-enum SetLevelSort {
-  setNumber,
-  levelAsc,
-  levelDesc,
-}
+enum SetLevelSort { setNumber, levelAsc, levelDesc }
 
 bool isSetVisibleForLevel(VocabularySet set, GradeLevel? selectedLevel) {
   if (selectedLevel == null) return true;
@@ -30,15 +26,17 @@ List<VocabularySet> sortSetsByLevel(
       sorted.sort((a, b) => a.id.compareTo(b.id));
     case SetLevelSort.levelAsc:
       sorted.sort((a, b) {
-        final levelCompare =
-            a.maxGradeLevel.order.compareTo(b.maxGradeLevel.order);
+        final levelCompare = a.maxGradeLevel.order.compareTo(
+          b.maxGradeLevel.order,
+        );
         if (levelCompare != 0) return levelCompare;
         return a.id.compareTo(b.id);
       });
     case SetLevelSort.levelDesc:
       sorted.sort((a, b) {
-        final levelCompare =
-            b.maxGradeLevel.order.compareTo(a.maxGradeLevel.order);
+        final levelCompare = b.maxGradeLevel.order.compareTo(
+          a.maxGradeLevel.order,
+        );
         if (levelCompare != 0) return levelCompare;
         return a.id.compareTo(b.id);
       });
@@ -58,5 +56,5 @@ String formatSetLevelLabel(VocabularySet set) {
   if (set.minGradeLevel == set.maxGradeLevel) {
     return set.minGradeLevel.label;
   }
-  return 'Levels ${set.minGradeLevel.displayLevel}–${set.maxGradeLevel.displayLevel}';
+  return '${set.minGradeLevel.shortLabel}–${set.maxGradeLevel.shortLabel}';
 }

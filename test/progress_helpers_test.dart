@@ -16,7 +16,7 @@ void main() {
     test('catalog set total steps matches word count', () {
       final expectedSteps = vocabularySet1.words.fold<int>(
         0,
-        (sum, word) => sum + (word.isMultiWord ? 3 : 4),
+        (sum, word) => sum + totalStepsForWord(word),
       );
       final stats = computeSetStats(vocabularySet1, {}, requireTyped: false);
 
@@ -28,7 +28,7 @@ void main() {
     test('partial review progress shows in progress', () {
       final totalSteps = vocabularySet1.words.fold<int>(
         0,
-        (sum, word) => sum + (word.isMultiWord ? 3 : 4),
+        (sum, word) => sum + totalStepsForWord(word),
       );
       final progress = {
         for (var i = 0; i < 6; i++)
@@ -53,7 +53,7 @@ void main() {
     test('all modes complete on all words marks set complete', () {
       final totalSteps = vocabularySet1.words.fold<int>(
         0,
-        (sum, word) => sum + (word.isMultiWord ? 3 : 4),
+        (sum, word) => sum + totalStepsForWord(word),
       );
       final progress = {
         for (final word in vocabularySet1.words)
@@ -111,9 +111,21 @@ void main() {
 
       final stats = computeSetStats(multiWordSet, {}, requireTyped: false);
 
-      expect(stats.totalSteps, 7);
-      expect(totalStepsForWord(multiWordSet.words.first), 4);
-      expect(totalStepsForWord(multiWordSet.words.last), 3);
+      expect(stats.totalSteps, 4);
+      expect(stats.spellableCount, 1);
+      expect(totalStepsForWord(multiWordSet.words.first), 2);
+      expect(totalStepsForWord(multiWordSet.words.last), 2);
+      expect(
+        isWordComplete(
+          const WordProgress(
+            wordId: 'multi-word',
+            reviewed: true,
+            quizCorrect: true,
+          ),
+          requireTyped: false,
+        ),
+        isTrue,
+      );
     });
 
     test('completedStepsForWord counts applicable modes only', () {
@@ -135,7 +147,7 @@ void main() {
         spellingCompleted: true,
       );
 
-      expect(completedStepsForWord(progress, multiWord), 3);
+      expect(completedStepsForWord(progress, multiWord), 2);
     });
   });
 
@@ -191,7 +203,7 @@ void main() {
       expect(restored.effectiveMaxGradeLevel, GradeLevel.g3);
     });
 
-    test('null maxGradeLevel defaults to Level 5', () {
+    test('null maxGradeLevel defaults to Grade 5', () {
       final profile = LocalProfile(
         id: 'profile-1',
         displayName: 'Alex',
@@ -199,7 +211,7 @@ void main() {
       );
 
       expect(profile.effectiveMaxGradeLevel, GradeLevel.g5);
-      expect(profile.effectiveMaxGradeLevel.label, 'Level 7');
+      expect(profile.effectiveMaxGradeLevel.label, 'Grade 5');
     });
   });
 }

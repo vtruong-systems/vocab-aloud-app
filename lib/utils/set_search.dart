@@ -19,10 +19,7 @@ bool setMatchesQuery(VocabularySet set, String query) {
   );
 }
 
-List<VocabularySet> filterSetsByQuery(
-  List<VocabularySet> sets,
-  String query,
-) {
+List<VocabularySet> filterSetsByQuery(List<VocabularySet> sets, String query) {
   return sets.where((set) => setMatchesQuery(set, query)).toList();
 }
 
@@ -40,4 +37,8 @@ List<VocabularySet> communitySets(List<VocabularySet> sets) {
 
 bool hasCommunitySets(List<VocabularySet> sets) {
   return sets.any((set) => set.isCommunity);
+}
+
+List<VocabularySet> deviceSets(List<VocabularySet> sets) {
+  return sets.where((set) => set.isDevice).toList();
 }

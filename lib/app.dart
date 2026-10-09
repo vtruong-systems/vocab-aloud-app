@@ -5,6 +5,7 @@ import 'constants/app_branding.dart';
 import 'navigation/routes.dart';
 import 'screens/activity_screen.dart';
 import 'screens/credits_screen.dart';
+import 'screens/create_device_set_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/custom_lessons_screen.dart';
 import 'screens/edit_profile_screen.dart';
@@ -69,8 +70,7 @@ class _VocabAppState extends State<VocabApp> {
           );
         }
 
-        final purchaseService =
-            snapshot.data ?? const StubPurchaseService();
+        final purchaseService = snapshot.data ?? const StubPurchaseService();
 
         return MultiProvider(
           providers: [
@@ -94,8 +94,7 @@ class _VocabAppState extends State<VocabApp> {
             routes: {
               AppRoutes.splash: (_) => const SplashScreen(),
               AppRoutes.createProfile: (_) => const CreateProfileScreen(),
-              AppRoutes.profileSelection: (_) =>
-                  const ProfileSelectionScreen(),
+              AppRoutes.profileSelection: (_) => const ProfileSelectionScreen(),
               AppRoutes.editProfile: (_) => const EditProfileScreen(),
               AppRoutes.iconStore: (_) => const IconStoreScreen(),
               AppRoutes.setSelection: (_) => const SetSelectionScreen(),
@@ -108,6 +107,7 @@ class _VocabAppState extends State<VocabApp> {
               AppRoutes.progress: (_) => const ProgressScreen(),
               AppRoutes.activity: (_) => const ActivityScreen(),
               AppRoutes.customLessons: (_) => const CustomLessonsScreen(),
+              AppRoutes.createDeviceSet: (_) => const CreateDeviceSetScreen(),
               AppRoutes.settings: (_) => const SettingsScreen(),
               AppRoutes.credits: (_) => const CreditsScreen(),
             },

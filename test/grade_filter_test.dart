@@ -147,7 +147,7 @@ void main() {
         words: const [],
       );
 
-      expect(formatSetLevelLabel(set), 'Level 1');
+      expect(formatSetLevelLabel(set), 'Pre-K');
     });
 
     test('shows level range for mixed sets', () {
@@ -162,7 +162,7 @@ void main() {
         words: const [],
       );
 
-      expect(formatSetLevelLabel(set), 'Levels 1–2');
+      expect(formatSetLevelLabel(set), 'Pre-K–K');
     });
   });
 
@@ -173,12 +173,13 @@ void main() {
       expect(GradeLevel.fromCsv('4'), GradeLevel.g4);
     });
 
-    test('labels use Level wording', () {
-      expect(GradeLevel.preK.label, 'Level 1');
-      expect(GradeLevel.k.label, 'Level 2');
-      expect(GradeLevel.g1.label, 'Level 3');
-      expect(GradeLevel.g3.label, 'Level 5');
-      expect(GradeLevel.g5.label, 'Level 7');
+    test('labels use grade names', () {
+      expect(GradeLevel.preK.label, 'Pre-K');
+      expect(GradeLevel.k.label, 'K');
+      expect(GradeLevel.g1.label, 'Grade 1');
+      expect(GradeLevel.g1.shortLabel, '1');
+      expect(GradeLevel.g3.label, 'Grade 3');
+      expect(GradeLevel.g5.label, 'Grade 5');
     });
 
     test('JSON round-trip', () {

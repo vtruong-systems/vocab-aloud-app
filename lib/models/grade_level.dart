@@ -14,9 +14,25 @@ enum GradeLevel {
   /// Display level shown in the app: Pre-K = 1, K = 2, 1st grade = 3, etc.
   int get displayLevel => order + 1;
 
-  String get label => 'Level $displayLevel';
+  String get label => switch (this) {
+    GradeLevel.preK => 'Pre-K',
+    GradeLevel.k => 'K',
+    GradeLevel.g1 => 'Grade 1',
+    GradeLevel.g2 => 'Grade 2',
+    GradeLevel.g3 => 'Grade 3',
+    GradeLevel.g4 => 'Grade 4',
+    GradeLevel.g5 => 'Grade 5',
+  };
 
-  String get shortLabel => displayLevel.toString();
+  String get shortLabel => switch (this) {
+    GradeLevel.preK => 'Pre-K',
+    GradeLevel.k => 'K',
+    GradeLevel.g1 => '1',
+    GradeLevel.g2 => '2',
+    GradeLevel.g3 => '3',
+    GradeLevel.g4 => '4',
+    GradeLevel.g5 => '5',
+  };
 
   static GradeLevel? fromCsv(String value) {
     switch (value.trim()) {
